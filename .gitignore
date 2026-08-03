@@ -92,7 +92,9 @@ Cropping_script/
 *.pt
 *.pth
 *.h5
-seeta_fd_frontal_v1.0.bin
+# Exception: SeetaFace frontal model — compiled into the binary via include_bytes!
+# Must be present in the repo for CI to build successfully.
+!seeta_fd_frontal_v1.0.bin
 
 # ── Jupyter notebooks ─────────────────────────────────────────────────────────
 .ipynb_checkpoints/

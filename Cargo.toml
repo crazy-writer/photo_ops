@@ -8,17 +8,18 @@ name = "_rust"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.23", features = ["extension-module", "abi3-py38"] }
-rayon = "1.8"
-sha2 = "0.10"
-image = "0.24"
-chrono = "0.4"
-uuid = { version = "1.7", features = ["v4"] }
-csv = "1.3"
-serde = { version = "1.0", features = ["derive"] }
+pyo3      = { version = "0.23", features = ["extension-module", "abi3-py38"] }
+rayon     = "1.8"
+sha2      = "0.10"
+image     = "0.24"
+chrono    = "0.4"
+uuid      = { version = "1.7", features = ["v4"] }
+csv       = "1.3"
+serde     = { version = "1.0", features = ["derive"] }
 kamadak-exif = "0.6"
-tract-onnx = "0.21"
-hex = "0.4"
+tract-onnx   = "0.21"
+hex          = "0.4"
+rustface     = "0.1.2"
 
 [profile.release]
 lto = "fat"
@@ -27,9 +28,8 @@ opt-level = 3
 strip = "symbols"
 panic = "abort"
 
-# Note: For Windows, ensure RUSTFLAGS="-C target-feature=+crt-static" 
+# Note: For Windows, ensure RUSTFLAGS="-C target-feature=+crt-static"
 # is set for static linking of the C runtime.
 
-[[bin]]
-name = "test_rustface"
-path = "src/bin/test_rustface.rs"
+# [[bin]] test_rustface is a dev-only binary (removed from public release)
+# If you need it locally: add back temporarily and run: cargo run --bin test_rustface
