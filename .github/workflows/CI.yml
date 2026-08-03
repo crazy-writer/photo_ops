@@ -1,0 +1,154 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# .github/workflows/CI.yml
+# photo_ops — Continuous Integration
+#
+# Triggers: every push to main/dev, every pull request targeting main
+# Free-tier safe: 3 jobs max parallel, sccache for Rust compile reuse
+#
+# Local testing with act:
+#   act push -j lint
+#   act push -j build-and-test
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+    tags-ignore: ["**"]          # release.yml handles tags
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 1. Lint — fast, cheap, runs first
+  # ─────────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint (ruff + cargo check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint photo_ops package only
+        # Only lint the package source — test/dev scripts are gitignored
+        run: ruff check photo_ops/ --select E,W,F --ignore E501,W503
+        continue-on-error: true   # informational, don't block build
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: cargo-lint-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
+          restore-keys: cargo-lint-
+
+      - name: Cargo check (Rust syntax)
+        run: cargo check --release
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 2. Build + smoke test — 3 platforms (free-tier friendly matrix)
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-and-test:
+    name: Build & Test — ${{ matrix.os }}
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows is most likely environment for the author
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          # Linux — fastest runner, broadest compat
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+          # macOS Apple Silicon (free on GitHub since 2024)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel (maturin develop — fast in-place)
+        uses: PyO3/maturin-action@v1
+        with:
+          command: develop
+          args: --release
+          target: ${{ matrix.target }}
+          sccache: true           # Rust compile cache — ~70% faster re-runs
+
+      - name: Smoke test — import + works()
+        run: |
+          python -c "
+          import photo_ops as ip
+          print('Import OK')
+          result = ip.works()
+          print('works():', result)
+          fns = ip.calls()
+          print(len(fns), 'public functions available')
+          assert len(fns) > 20, f'Expected >20 functions, got {len(fns)}'
+          print('PASS')
+          "
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 3. Python version matrix — Linux only, smoke test only (saves minutes)
+  # ─────────────────────────────────────────────────────────────────────────────
+  python-matrix:
+    name: Python ${{ matrix.python }} (Linux smoke)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Build (maturin develop)
+        uses: PyO3/maturin-action@v1
+        with:
+          command: develop
+          args: --release
+          sccache: true
+
+      - name: Import smoke test
+        run: |
+          python -c "
+          import photo_ops as ip
+          print('photo_ops imported OK on Python ${{ matrix.python }}')
+          print('works():', ip.works())
+          fns = ip.calls()
+          print(f'{len(fns)} functions available')
+          "

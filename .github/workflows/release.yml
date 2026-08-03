@@ -1,0 +1,229 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# .github/workflows/release.yml
+# photo_ops — Build all platform wheels and publish to PyPI
+#
+# Trigger:
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# Required GitHub secret (add once):
+#   PYPI_API_TOKEN
+#   → PyPI: Account Settings → API tokens → Add token (scope: project)
+#   → GitHub: repo → Settings → Secrets → Actions → New repository secret
+#
+# Free-tier usage:
+#   • Public repos get unlimited Actions minutes — all runners are free
+#   • Artifact storage: wheels are kept 1 day (not 90) to save the 500 MB quota
+#   • sccache: reuses Rust compile cache across runs (~70% faster re-builds)
+#
+# Wheel matrix (6 targets):
+#   Windows   : x64, x86
+#   Linux     : x64 (manylinux), aarch64 (manylinux), armv7 (musl)
+#   macOS     : Universal2 (Intel + Apple Silicon in one wheel)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Release — Build & Publish
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"           # v0.1.0, v1.2.3
+      - "v[0-9]+.[0-9]+.[0-9]+.post[0-9]+" # v0.1.0.post1
+
+permissions:
+  contents: write   # create GitHub Release + attach wheel files
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 1. Build wheels — one job per platform / arch
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-wheels:
+    name: Wheel — ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+
+          # ── Windows ──────────────────────────────────────────────────────────
+          - name: Windows x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            manylinux: ""
+
+          - name: Windows x86
+            runner: windows-latest
+            target: i686-pc-windows-msvc
+            manylinux: ""
+
+          # ── Linux x64 (broadest compatibility via manylinux) ─────────────────
+          - name: Linux x64
+            runner: ubuntu-latest
+            target: x86_64
+            manylinux: auto
+
+          # ── Linux aarch64 (AWS Graviton, Raspberry Pi 4+) ────────────────────
+          - name: Linux aarch64
+            runner: ubuntu-latest
+            target: aarch64
+            manylinux: auto
+
+          # ── Linux armv7 (Raspberry Pi 3, musl for broadest ARM compat) ────────
+          - name: Linux armv7
+            runner: ubuntu-latest
+            target: armv7
+            manylinux: musllinux_1_2
+
+          # ── macOS Universal2 (Intel + Apple Silicon in one wheel) ─────────────
+          - name: macOS Universal2
+            runner: macos-13           # Intel runner — can cross-compile to arm64
+            target: universal2-apple-darwin
+            manylinux: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheel — ${{ matrix.platform.name }}
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: >-
+            --release
+            --out dist/
+            --find-interpreter
+          target: ${{ matrix.platform.target }}
+          manylinux: ${{ matrix.platform.manylinux || 'off' }}
+          sccache: true
+        env:
+          # Statically link CRT on Windows → no MSVC redistributable needed
+          RUSTFLAGS: >-
+            ${{ startsWith(matrix.platform.runner, 'windows')
+                && '-C target-feature=+crt-static'
+                || '' }}
+
+      # Smoke test — only for native (non-cross-compiled) targets
+      - name: Smoke test wheel
+        if: >-
+          !contains(matrix.platform.target, 'aarch64') &&
+          !contains(matrix.platform.target, 'armv7')
+        shell: bash
+        run: |
+          pip install photo_ops --find-links dist/ --no-index --force-reinstall
+          python -c "
+          import photo_ops as ip
+          assert ip.works(), 'works() returned falsy'
+          fns = ip.calls()
+          assert len(fns) > 20, f'Expected >20 functions, got {len(fns)}'
+          print(f'PASS — {len(fns)} functions available')
+          "
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform.name }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1    # save artifact storage quota (free tier: 500 MB)
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 2. Build source distribution (sdist)
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-sdist:
+    name: Source distribution (sdist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist/
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 3. Publish to PyPI (token-based — works on all GitHub plans)
+  # ─────────────────────────────────────────────────────────────────────────────
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [build-wheels, build-sdist]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/photo_ops
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist/
+          merge-multiple: true
+
+      - name: List files to publish
+        run: ls -lh dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: dist/
+          skip-existing: true   # safe re-run if tag is re-pushed
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 4. Create GitHub Release with wheels attached
+  # ─────────────────────────────────────────────────────────────────────────────
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: publish-pypi
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # full history for release notes
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "photo_ops ${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## photo_ops ${{ steps.version.outputs.VERSION }}
+
+            📖 **[Full documentation](https://crazy-writer.github.io/photo_ops/)**
+            📋 **[Changelog](https://github.com/crazy-writer/photo_ops/blob/main/CHANGELOG.md)**
+
+            ### Install
+            ```bash
+            pip install "photo_ops==${{ steps.version.outputs.VERSION }}"
+            ```
+
+            ### Platform wheels included
+            | Platform | Architecture |
+            |----------|-------------|
+            | Windows  | x64, x86 |
+            | Linux    | x64 (manylinux), aarch64 (manylinux), armv7 (musl) |
+            | macOS    | Universal2 (Intel + Apple Silicon) |
+
+          files: dist/*
+          generate_release_notes: true
+          draft: false
+          prerelease: >-
+            ${{ contains(github.ref_name, 'rc') ||
+                contains(github.ref_name, 'beta') ||
+                contains(github.ref_name, 'alpha') }}

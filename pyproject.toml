@@ -1,0 +1,40 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "photo_ops"
+version = "0.1.0"
+description = "High-performance image processing engine for bulk photo pipelines — Rust core, zero external dependencies."
+readme = "README.md"
+authors = [{ name = "Dhileep", email = "sdhileep075@gmail.com" }]
+license = { text = "MIT" }
+requires-python = ">=3.8"
+dependencies = []
+keywords = ["image", "photo", "signature", "passport", "face", "crop", "rust"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Multimedia :: Graphics",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+Homepage      = "https://crazy-writer.github.io/photo_ops/"
+Documentation = "https://crazy-writer.github.io/photo_ops/"
+Source        = "https://github.com/crazy-writer/photo_ops"
+Feedback      = "https://forms.gle/CBhJVP3XdbZh1B2J7"
+
+
+[tool.maturin]
+python-source = "."
+module-name = "photo_ops._rust"
+features = ["pyo3/extension-module"]

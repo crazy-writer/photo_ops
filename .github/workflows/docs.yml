@@ -1,0 +1,61 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# .github/workflows/docs.yml
+# photo_ops — Deploy docs/index.html to GitHub Pages
+#
+# URL after deployment: https://crazy-writer.github.io/photo_ops/
+#
+# Setup (one-time):
+#   1. Push this workflow to main
+#   2. Go to repo → Settings → Pages → Source: "GitHub Actions"
+#   3. Done — every push to main re-deploys automatically
+#
+# Local preview (no GitHub needed):
+#   python -m http.server 8000 --directory docs/
+#   → open http://localhost:8000
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Docs — Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"              # only re-deploy when docs change
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:           # allow manual trigger from GitHub UI
+
+permissions:
+  contents: read
+  pages:    write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy docs to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload docs/ as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/           # the folder containing index.html
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Print live URL
+        run: echo "Docs live at ${{ steps.deployment.outputs.page_url }}"

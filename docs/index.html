@@ -1,0 +1,2388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>photo_ops — Python Image Processing Library</title>
+  <meta name="description" content="photo_ops: High-performance Rust-backed image processing for Python. Full API reference with examples for every function." />
+  <meta property="og:title" content="photo_ops — Python Image Processing Library" />
+  <meta property="og:description" content="Rust-core image processing: gray, resize, sign_fix, sub_fix, batch, cloud and more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js">
+// ── Try-it Parameter Builder ──────────────────────────────────────
+function initTryIt(widgetId) {
+  const widget = document.getElementById(widgetId);
+  if (!widget) return;
+  const outputEl = widget.querySelector('.try-output');
+  const template = widget.dataset.template || '';
+
+  function render() {
+    const vals = {};
+    widget.querySelectorAll('[data-key]').forEach(el => {
+      let v = el.tagName === 'SELECT' ? el.value : el.value.trim();
+      // Auto-quote string values that look like file paths
+      if (el.dataset.quote === 'auto') {
+        if (v === 'None' || v === 'True' || v === 'False' || /^[0-9"\']/.test(v) || v === '') {
+          // keep as-is
+        } else {
+          v = '"' + v + '"';
+        }
+      }
+      vals[el.dataset.key] = v;
+    });
+    let code = template;
+    Object.entries(vals).forEach(([k, v]) => {
+      code = code.split('{' + k + '}').join(v);
+    });
+    // Remove trailing ", )" artifacts for optional empty params
+    code = code.replace(/,\s*(?=\))/g, '').replace(/,\s*#[^\n]*/g, '');
+    outputEl.textContent = 'import photo_ops as ip\n\n' + code;
+    if (window.hljs) hljs.highlightElement(outputEl);
+  }
+
+  widget.querySelectorAll('[data-key]').forEach(el => {
+    el.addEventListener('input', render);
+    el.addEventListener('change', render);
+  });
+  render();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.try-widget').forEach(w => {
+    if (!w.id) w.id = 'try-auto-' + Math.random().toString(36).slice(2);
+    initTryIt(w.id);
+  });
+});
+
+</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   ROOT TOKENS
+═══════════════════════════════════════════════════════════════════ */
+:root {
+  --bg-0:        #0d1117;
+  --bg-1:        #161b22;
+  --bg-2:        #21262d;
+  --bg-3:        #30363d;
+  --border:      #30363d;
+  --border-sub:  #21262d;
+  --text-1:      #e6edf3;
+  --text-2:      #8b949e;
+  --text-3:      #6e7681;
+  --accent:      #58a6ff;
+  --accent-dim:  #1f6feb22;
+  --accent-glow: #1f6feb44;
+  --green:       #3fb950;
+  --orange:      #d29922;
+  --purple:      #bc8cff;
+  --red:         #f85149;
+  --teal:        #39d353;
+  --pill-bg:     #21262d;
+  --code-bg:     #161b22;
+  --radius:      8px;
+  --radius-lg:   14px;
+  --shadow:      0 4px 24px #00000055;
+  --trans:       all .18s ease;
+  --sidebar-w:   260px;
+  --nav-h:       60px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 15px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-0);
+  color: var(--text-1);
+  line-height: 1.7;
+  min-height: 100vh;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+::selection { background: var(--accent-glow); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 3px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   TOP NAV
+═══════════════════════════════════════════════════════════════════ */
+#topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: var(--nav-h);
+  background: #0d111799;
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 24px;
+}
+.nav-logo {
+  font-weight: 700; font-size: 1.1rem; letter-spacing: -.5px;
+  color: var(--text-1); white-space: nowrap;
+}
+.nav-logo span { color: var(--accent); }
+.nav-search {
+  flex: 1; max-width: 380px; position: relative;
+}
+.nav-search input {
+  width: 100%;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-1);
+  font-family: inherit; font-size: .88rem;
+  padding: 7px 14px 7px 36px;
+  outline: none; transition: var(--trans);
+}
+.nav-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.nav-search input::placeholder { color: var(--text-3); }
+.nav-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: .45; }
+.nav-pills { display: flex; gap: 8px; margin-left: auto; }
+.nav-pill {
+  font-size: .78rem; font-weight: 500; padding: 5px 13px;
+  border-radius: 99px; border: 1px solid var(--border);
+  background: var(--bg-2); color: var(--text-2); cursor: pointer;
+  transition: var(--trans); white-space: nowrap;
+}
+.nav-pill:hover, .nav-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.hamburger { display: none; background: none; border: none; color: var(--text-1); cursor: pointer; padding: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════════════════ */
+#layout {
+  display: flex;
+  padding-top: var(--nav-h);
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════════════════ */
+#sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  position: fixed;
+  top: var(--nav-h); bottom: 0; left: 0;
+  overflow-y: auto;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  padding: 20px 0 40px;
+  transition: transform .25s ease;
+  z-index: 90;
+}
+.sb-section-title {
+  font-size: .7rem; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-3);
+  padding: 14px 20px 4px;
+}
+.sb-link {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .84rem; color: var(--text-2);
+  padding: 5px 20px; border-radius: 0;
+  cursor: pointer; transition: var(--trans);
+  border-left: 2px solid transparent;
+  user-select: none;
+}
+.sb-link:hover { color: var(--text-1); background: var(--bg-2); }
+.sb-link.active {
+  color: var(--accent); background: var(--accent-dim);
+  border-left-color: var(--accent);
+}
+.sb-link .badge {
+  margin-left: auto; font-size: .65rem;
+  background: var(--bg-3); color: var(--text-3);
+  padding: 1px 6px; border-radius: 99px;
+}
+#sidebar-overlay {
+  display: none; position: fixed; inset: 0; z-index: 80;
+  background: #00000088;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════════════════════════════ */
+#content {
+  flex: 1;
+  margin-left: var(--sidebar-w);
+  padding: 0 48px 80px;
+  max-width: 960px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════════════════════ */
+#hero {
+  padding: 64px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 40px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-dim); border: 1px solid var(--accent-glow);
+  color: var(--accent); font-size: .78rem; font-weight: 600;
+  padding: 4px 12px; border-radius: 99px; margin-bottom: 18px;
+}
+.hero-title {
+  font-size: 2.8rem; font-weight: 700; line-height: 1.15;
+  letter-spacing: -.03em; margin-bottom: 14px;
+}
+.hero-title span { color: var(--accent); }
+.hero-sub {
+  font-size: 1.1rem; color: var(--text-2); max-width: 580px; line-height: 1.6;
+  margin-bottom: 28px;
+}
+.hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px; border-radius: var(--radius);
+  font-size: .9rem; font-weight: 600; cursor: pointer;
+  transition: var(--trans); border: 1px solid transparent;
+  font-family: inherit; text-decoration: none;
+}
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: #79b8ff; text-decoration: none; }
+.btn-ghost { background: var(--bg-2); color: var(--text-1); border-color: var(--border); }
+.btn-ghost:hover { background: var(--bg-3); text-decoration: none; }
+.platform-row {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 28px;
+}
+.platform-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .78rem; color: var(--text-2);
+  background: var(--bg-2); border: 1px solid var(--border);
+  padding: 3px 10px; border-radius: 99px;
+}
+.dot-green { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.install-block {
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 18px;
+  font-family: 'JetBrains Mono', monospace; font-size: .88rem;
+  color: var(--green); margin-top: 22px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+.install-block .copy-btn {
+  font-size: .72rem; color: var(--text-3); background: var(--bg-3);
+  border: none; border-radius: 5px; padding: 3px 9px; cursor: pointer;
+  font-family: inherit; transition: var(--trans); white-space: nowrap;
+}
+.install-block .copy-btn:hover { color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION HEADINGS
+═══════════════════════════════════════════════════════════════════ */
+.section { margin-bottom: 64px; }
+.section-title {
+  font-size: 1.5rem; font-weight: 700; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 10px;
+  padding-top: 24px; border-top: 1px solid var(--border);
+}
+.section-title .icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+}
+.section-desc { color: var(--text-2); margin-bottom: 28px; max-width: 680px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FUNCTION CARDS
+═══════════════════════════════════════════════════════════════════ */
+.fn-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+  overflow: hidden;
+  transition: var(--trans);
+}
+.fn-card:hover { border-color: var(--bg-3); box-shadow: var(--shadow); }
+.fn-header {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 18px 22px 14px; cursor: pointer;
+  background: var(--bg-1);
+}
+.fn-header:hover { background: var(--bg-2); }
+.fn-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem; font-weight: 500; color: var(--accent);
+}
+.fn-sig {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .77rem; color: var(--text-3); margin-top: 3px;
+  word-break: break-all;
+}
+.fn-desc { font-size: .9rem; color: var(--text-2); margin-top: 6px; line-height: 1.5; }
+.fn-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.badge {
+  font-size: .68rem; font-weight: 600; letter-spacing: .04em;
+  padding: 2px 8px; border-radius: 99px;
+}
+.badge-bytes  { background: #238636; color: #3fb950; border: 1px solid #2ea04333; }
+.badge-cloud  { background: #1f3d6e; color: #58a6ff; border: 1px solid #1f6feb33; }
+.badge-worker { background: #3d2b1f; color: #d29922; border: 1px solid #d2992233; }
+.badge-sig    { background: #3d1f3d; color: #bc8cff; border: 1px solid #8957e533; }
+.badge-face   { background: #1f3d2b; color: #3fb950; border: 1px solid #3fb95033; }
+.badge-rust   { background: #3d2920; color: #e25d26; border: 1px solid #e25d2633; }
+
+.fn-toggle { margin-left: auto; color: var(--text-3); font-size: 1.1rem; transition: var(--trans); }
+.fn-card.open .fn-toggle { transform: rotate(180deg); }
+
+.fn-body {
+  display: none; padding: 0 22px 20px;
+  border-top: 1px solid var(--border-sub);
+}
+.fn-card.open .fn-body { display: block; }
+
+.fn-tabs { display: flex; gap: 2px; margin: 16px 0 14px; }
+.fn-tab {
+  font-size: .78rem; font-weight: 500;
+  padding: 5px 14px; border-radius: var(--radius) var(--radius) 0 0;
+  cursor: pointer; color: var(--text-3); border: 1px solid transparent;
+  transition: var(--trans); background: transparent;
+  border-bottom: 2px solid transparent;
+}
+.fn-tab:hover { color: var(--text-1); }
+.fn-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.fn-tab-pane { display: none; }
+.fn-tab-pane.active { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CODE BLOCKS
+═══════════════════════════════════════════════════════════════════ */
+.code-wrap { position: relative; margin: 10px 0; }
+.code-wrap pre {
+  background: var(--code-bg) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px !important;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: .82rem !important;
+  line-height: 1.7 !important;
+}
+.code-wrap .copy-btn {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--bg-3); color: var(--text-3);
+  border: 1px solid var(--border); border-radius: 5px;
+  font-size: .7rem; padding: 3px 9px; cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: var(--trans); opacity: 0;
+}
+.code-wrap:hover .copy-btn { opacity: 1; }
+.copy-btn.copied { color: var(--green) !important; }
+
+/* params table */
+.params-table { width: 100%; border-collapse: collapse; font-size: .83rem; margin: 8px 0; }
+.params-table th { text-align: left; padding: 8px 12px; color: var(--text-3); font-weight: 600; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.params-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-sub); vertical-align: top; }
+.params-table tr:last-child td { border-bottom: none; }
+.params-table td:first-child { font-family: 'JetBrains Mono', monospace; color: var(--accent); white-space: nowrap; font-size: .8rem; }
+.params-table td:nth-child(2) { font-family: 'JetBrains Mono', monospace; color: var(--orange); font-size: .78rem; white-space: nowrap; }
+.params-table td:nth-child(3) { color: var(--text-2); }
+
+/* returns line */
+.returns-line { font-size: .84rem; color: var(--text-2); margin: 8px 0; }
+.returns-line code { font-family: 'JetBrains Mono', monospace; color: var(--purple); font-size: .8rem; background: var(--bg-2); padding: 1px 5px; border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   KEYWORD GLOSSARY
+═══════════════════════════════════════════════════════════════════ */
+.glossary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.gcard {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px;
+}
+.gcard-term { font-family: 'JetBrains Mono', monospace; font-size: .95rem; color: var(--accent); font-weight: 500; margin-bottom: 8px; }
+.gcard-def { font-size: .84rem; color: var(--text-2); line-height: 1.6; }
+.gcard-def code { font-family: 'JetBrains Mono', monospace; color: var(--orange); font-size: .78rem; background: var(--bg-2); padding: 1px 5px; border-radius: 4px; }
+
+/* workers table */
+.workers-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.workers-table th { background: var(--bg-2); padding: 9px 14px; text-align: left; color: var(--text-3); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+.workers-table td { padding: 9px 14px; border-bottom: 1px solid var(--border-sub); color: var(--text-2); }
+.workers-table td:first-child { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+.workers-table tr:last-child td { border-bottom: none; }
+
+/* info alert */
+.alert {
+  display: flex; gap: 12px; align-items: flex-start;
+  border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;
+  font-size: .84rem; line-height: 1.6;
+}
+.alert-info { background: #1f3d6e22; border: 1px solid #1f6feb55; }
+.alert-warn { background: #3d2b1f33; border: 1px solid #d2992255; }
+.alert-green { background: #23863622; border: 1px solid #3fb95055; }
+.alert svg { flex-shrink: 0; margin-top: 2px; }
+
+/* pipeline steps */
+.pipeline { display: flex; flex-direction: column; gap: 0; margin: 12px 0; }
+.pipeline-step { display: flex; gap: 14px; align-items: flex-start; padding: 10px 0; position: relative; }
+.pipeline-step:not(:last-child)::after { content: ''; position: absolute; left: 12px; top: 36px; bottom: 0; width: 2px; background: var(--border); }
+.step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: .72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; }
+.step-content { font-size: .85rem; color: var(--text-2); padding-top: 3px; }
+.step-content strong { color: var(--text-1); }
+
+/* search results highlight */
+.search-highlight { background: #d2992244; border-radius: 2px; }
+.search-no-results { text-align: center; padding: 40px; color: var(--text-3); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   QUICK START
+═══════════════════════════════════════════════════════════════════ */
+.qs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.qs-card {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.qs-head { padding: 12px 16px 8px; font-size: .78rem; font-weight: 600; color: var(--text-3); letter-spacing: .05em; text-transform: uppercase; }
+.qs-card pre { border-radius: 0; border: none; border-top: 1px solid var(--border); margin: 0 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════════════════ */
+#footer {
+  border-top: 1px solid var(--border);
+  margin-top: 80px; padding: 32px 0;
+  color: var(--text-3); font-size: .82rem;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════════════════════════════════ */
+#search-results {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  max-height: 360px; overflow-y: auto; display: none; margin-top: 4px;
+}
+.search-result-item {
+  padding: 10px 16px; cursor: pointer;
+  border-bottom: 1px solid var(--border-sub);
+  transition: var(--trans);
+}
+.search-result-item:hover { background: var(--bg-2); }
+.sri-name { font-family: 'JetBrains Mono', monospace; font-size: .84rem; color: var(--accent); }
+.sri-desc { font-size: .78rem; color: var(--text-3); margin-top: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.open { transform: translateX(0); }
+  #sidebar-overlay.open { display: block; }
+  #content { margin-left: 0; padding: 0 20px 80px; }
+  .hamburger { display: flex; }
+  .hero-title { font-size: 2rem; }
+  .glossary-grid { grid-template-columns: 1fr; }
+  .qs-grid { grid-template-columns: 1fr; }
+  .nav-pills { display: none; }
+}
+@media (max-width: 600px) {
+  #content { padding: 0 14px 80px; }
+  .fn-header { padding: 14px 16px 12px; }
+  .fn-body { padding: 0 16px 16px; }
+}
+
+/* ── Try-it Parameter Builder ────────────────────────────────────── */
+.try-form { display:grid; grid-template-columns:1fr 1fr; gap:10px 18px; margin:14px 0; }
+.try-field { display:flex; flex-direction:column; gap:4px; }
+.try-field label { font-size:.72rem; font-weight:600; color:var(--text-3); letter-spacing:.06em; text-transform:uppercase; }
+.try-field input,
+.try-field select { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text-1); font-family:'JetBrains Mono',monospace; font-size:.8rem; padding:6px 10px; outline:none; transition:var(--trans); width:100%; }
+.try-field input:focus, .try-field select:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+.try-field input::placeholder { color:var(--text-3); font-style:italic; }
+.try-output-wrap { position:relative; margin-top:10px; }
+.try-output-wrap pre { background:var(--code-bg)!important; border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px!important; margin:0!important; overflow-x:auto; font-family:'JetBrains Mono',monospace!important; font-size:.82rem!important; line-height:1.7!important; white-space:pre!important; }
+.try-hint { font-size:.75rem; color:var(--text-3); margin:8px 0 4px; }
+@media(max-width:700px){ .try-form{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ── TOP NAV ─────────────────────────────────────────────────── -->
+<nav id="topnav">
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-logo">photo<span>_ops</span></div>
+  <div class="nav-search" style="position:relative">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Search functions…" autocomplete="off" spellcheck="false" />
+    <div id="search-results"></div>
+  </div>
+  <div class="nav-pills">
+    <a class="nav-pill" href="https://pypi.org/project/photo_ops/" target="_blank">PyPI</a>
+    <a class="nav-pill" href="https://github.com/crazy-writer/photo_ops" target="_blank">GitHub</a>
+    <a class="nav-pill btn-primary" href="#quickstart">Get Started</a>
+  </div>
+</nav>
+
+<div id="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ── LAYOUT ──────────────────────────────────────────────────── -->
+<div id="layout">
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="sb-section-title">Overview</div>
+  <div class="sb-link" onclick="navTo('hero')">🏠 Home</div>
+  <div class="sb-link" onclick="navTo('quickstart')">⚡ Quick Start</div>
+  <div class="sb-link" onclick="navTo('keywords')">📖 Keywords</div>
+  <div class="sb-link" onclick="navTo('workers-spec')">🔧 Workers Spec</div>
+  <div class="sb-link" onclick="navTo('bytes-io')">💾 Bytes I/O</div>
+  <div class="sb-link" onclick="navTo('cloud-auth')">☁️ Cloud &amp; Auth</div>
+
+  <div class="sb-section-title">Core</div>
+  <div class="sb-link" onclick="navTo('fn-gray')">gray <span class="badge">bytes cloud</span></div>
+  <div class="sb-link" onclick="navTo('fn-resize')">resize <span class="badge">bytes cloud</span></div>
+  <div class="sb-link" onclick="navTo('fn-info')">info</div>
+  <div class="sb-link" onclick="navTo('fn-rotate')">rotate <span class="badge">bytes</span></div>
+
+  <div class="sb-section-title">Crop &amp; Transform</div>
+  <div class="sb-link" onclick="navTo('fn-crop')">crop</div>
+  <div class="sb-link" onclick="navTo('fn-crop_center')">crop_center / auto_crop</div>
+  <div class="sb-link" onclick="navTo('fn-flip')">flip</div>
+  <div class="sb-link" onclick="navTo('fn-scale')">scale</div>
+
+  <div class="sb-section-title">Adjustments</div>
+  <div class="sb-link" onclick="navTo('fn-brightness')">brightness</div>
+  <div class="sb-link" onclick="navTo('fn-saturation')">saturation</div>
+  <div class="sb-link" onclick="navTo('fn-tint')">tint</div>
+  <div class="sb-link" onclick="navTo('fn-color_grade')">color_grade</div>
+  <div class="sb-link" onclick="navTo('fn-draw_rect')">draw_rect</div>
+  <div class="sb-link" onclick="navTo('fn-add_text')">add_text</div>
+  <div class="sb-link" onclick="navTo('fn-morphology')">morphology</div>
+
+  <div class="sb-section-title">Filters</div>
+  <div class="sb-link" onclick="navTo('fn-blur')">blur</div>
+  <div class="sb-link" onclick="navTo('fn-sharpen')">sharpen</div>
+  <div class="sb-link" onclick="navTo('fn-edges')">edges</div>
+  <div class="sb-link" onclick="navTo('fn-edge_art')">edge_art</div>
+  <div class="sb-link" onclick="navTo('fn-portrait')">portrait</div>
+  <div class="sb-link" onclick="navTo('fn-enhance')">enhance</div>
+  <div class="sb-link" onclick="navTo('fn-deblur')">deblur</div>
+  <div class="sb-link" onclick="navTo('fn-compress')">compress</div>
+
+  <div class="sb-section-title">Frames</div>
+  <div class="sb-link" onclick="navTo('fn-extract_frames')">extract_frames</div>
+  <div class="sb-link" onclick="navTo('fn-extract_frames_ex')">extract_frames_ex</div>
+
+  <div class="sb-section-title">Signature &amp; Subject</div>
+  <div class="sb-link" onclick="navTo('fn-enhance_signature')">enhance_signature</div>
+  <div class="sb-link" onclick="navTo('fn-has_faces')">has_faces</div>
+  <div class="sb-link" onclick="navTo('fn-sign_fix')">sign_fix ✦</div>
+  <div class="sb-link" onclick="navTo('fn-sign_check')">sign_check</div>
+  <div class="sb-link" onclick="navTo('fn-sub_fix')">sub_fix ✦</div>
+  <div class="sb-link" onclick="navTo('fn-sub_check')">sub_check</div>
+
+  <div class="sb-section-title">Cloud</div>
+  <div class="sb-link" onclick="navTo('fn-download')">download</div>
+  <div class="sb-link" onclick="navTo('fn-resolve_folder')">resolve_folder</div>
+  <div class="sb-link" onclick="navTo('fn-auth_status')">auth_status</div>
+  <div class="sb-link" onclick="navTo('fn-refresh_gcp_token')">refresh_gcp_token</div>
+
+  <div class="sb-section-title">Batch Engine</div>
+  <div class="sb-link" onclick="navTo('fn-batch_resize')">batch_resize</div>
+  <div class="sb-link" onclick="navTo('fn-batch_process')">batch_process</div>
+  <div class="sb-link" onclick="navTo('fn-process')">process / run</div>
+
+  <div class="sb-section-title">Audit Logs</div>
+  <div class="sb-link" onclick="navTo('fn-log_file')">📊 Excel / CSV log_file</div>
+
+  <div class="sb-section-title">Changelog</div>
+  <div class="sb-link" onclick="navTo('fn-changelog')">📋 v0.1.0 — What's New</div>
+
+  <div class="sb-section-title">Health</div>
+  <div class="sb-link" onclick="navTo('fn-works')">works</div>
+  <div class="sb-link" onclick="navTo('fn-calls')">calls</div>
+  <div class="sb-link" onclick="navTo('fn-install_models')">install_models</div>
+</nav>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────────────── -->
+<main id="content">
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-badge">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    Rust-powered · Zero dependencies · Air-gap safe
+  </div>
+  <h1 class="hero-title">photo<span>_ops</span><br/>Python API Reference</h1>
+  <p class="hero-sub">High-performance image processing built on a pure-Rust core (PyO3 + Rayon). Signature intelligence, passport cropping, batch processing, cloud I/O — all in one pip install.</p>
+  <div class="hero-buttons">
+    <a class="btn btn-primary" href="#quickstart">⚡ Quick Start</a>
+    <a class="btn btn-ghost" href="https://pypi.org/project/photo_ops/" target="_blank">📦 PyPI</a>
+    <a class="btn btn-ghost" href="https://github.com/crazy-writer/photo_ops" target="_blank">⭐ GitHub</a>
+    <a class="btn btn-ghost" href="https://forms.gle/CBhJVP3XdbZh1B2J7" target="_blank">💬 Feedback</a>
+  </div>
+  <div class="install-block">
+    <span>pip install photo_ops</span>
+    <button class="copy-btn" onclick="copyText('pip install photo_ops', this)">Copy</button>
+  </div>
+  <div class="platform-row">
+    <span class="platform-tag"><span class="dot-green"></span> Windows x64 / x86</span>
+    <span class="platform-tag"><span class="dot-green"></span> Linux x64 / aarch64 / armv7</span>
+    <span class="platform-tag"><span class="dot-green"></span> macOS Intel + Apple Silicon</span>
+    <span class="platform-tag"><span class="dot-green"></span> Python 3.8 – 3.13</span>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section class="section" id="quickstart">
+  <h2 class="section-title"><span class="icon" style="background:#1f3d6e">⚡</span> Quick Start</h2>
+  <p class="section-desc">Install, import, and process your first image in under 30 seconds.</p>
+
+  <div class="qs-grid">
+    <div class="qs-card">
+      <div class="qs-head">Install</div>
+      <div class="code-wrap">
+        <pre><code class="language-bash">pip install photo_ops
+
+# Verify Rust core is loaded
+python -c "import photo_ops as ip; print(ip.works())"</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+    </div>
+    <div class="qs-card">
+      <div class="qs-head">Single file</div>
+      <div class="code-wrap">
+        <pre><code class="language-python">import photo_ops as ip
+
+# Convert to grayscale
+ip.gray("photo.jpg", "gray.jpg")
+
+# Resize
+ip.resize("photo.jpg", "small.jpg", 300, 300)
+
+# Passport crop from portrait
+ip.sub_fix("portrait.jpg", "passport.jpg",
+           width=400, height=500)</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+    </div>
+    <div class="qs-card">
+      <div class="qs-head">Bytes I/O (no file on disk)</div>
+      <div class="code-wrap">
+        <pre><code class="language-python">import photo_ops as ip
+
+# Pass a file → get bytes back (output_path=None)
+data = ip.gray("photo.jpg", None)
+
+# Pass raw bytes → get bytes back
+with open("photo.jpg", "rb") as f:
+    raw = f.read()
+gray_bytes = ip.gray(raw, None)</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+    </div>
+    <div class="qs-card">
+      <div class="qs-head">Folder / batch (parallel)</div>
+      <div class="code-wrap">
+        <pre><code class="language-python">import photo_ops as ip
+
+# Process entire folder, 4 workers, audit log
+ip.gray("photos/", "gray_out/",
+        workers=4,
+        log_file="audit.xlsx")
+
+# Adaptive threading (auto-scales)
+ip.sub_fix("portraits/", "passports/",
+           width=400, height=500,
+           workers="auto", stats=True)</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+    </div>
+    <div class="qs-card">
+      <div class="qs-head">Cloud bucket (gs:// / s3:// / az://)</div>
+      <div class="code-wrap">
+        <pre><code class="language-python">import photo_ops as ip
+
+# Check auth status (see Cloud section)
+ip.auth_status()
+
+# Process GCS bucket folder
+ip.gray("gs://my-bucket/photos/", "out/",
+        workers="auto", log_file="audit.xlsx")
+
+ip.sub_fix("gs://bucket/portraits/", "out/",
+           width=400, height=500, workers=4)</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+    </div>
+    <div class="qs-card">
+      <div class="qs-head">Pipeline engine (chain ops)</div>
+      <div class="code-wrap">
+        <pre><code class="language-python">import photo_ops as ip
+
+ip.process({
+    "input":    "scans/",
+    "output":   "clean/",
+    "ops":      ["fix_turn", "sign_fix", "gray"],
+    "workers":  "auto",
+    "width":    500,
+    "height":   200,
+    "stats":    True,
+    "log_file": "audit.xlsx",
+})</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- KEYWORDS -->
+<section class="section" id="keywords">
+  <h2 class="section-title"><span class="icon" style="background:#3d2b3d">📖</span> Keywords &amp; Concepts</h2>
+  <p class="section-desc">Core vocabulary used throughout every function signature and docstring.</p>
+  <div class="glossary-grid">
+    <div class="gcard">
+      <div class="gcard-term">input_path</div>
+      <div class="gcard-def">Accepts a <code>str</code> file path, a <code>pathlib.Path</code>, a <code>bytes</code> object (raw image data), a local folder, or a cloud URL (<code>gs://</code>, <code>s3://</code>, <code>az://</code>). The library auto-detects which one it is.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">output_path</div>
+      <div class="gcard-def">Destination file or folder. Pass <code>None</code> to skip writing to disk and receive the processed image as <code>bytes</code> instead — useful for serving images via a web API.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">WorkerSpec</div>
+      <div class="gcard-def">Controls parallelism for folder input. Only effective when processing a folder or list. See the full Workers table below for all accepted values.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">BulkResult</div>
+      <div class="gcard-def">A <code>dict[str, str]</code> returned for folder input, mapping each filename to a status string: <code>"success"</code>, <code>"not_processed"</code>, or <code>"failed: &lt;error&gt;"</code>.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">log_file</div>
+      <div class="gcard-def">Optional path to an <code>.xlsx</code> or <code>.csv</code> audit log. Auto-created if it doesn't exist. Each row contains filename, status, timestamp, size, and error detail.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">stats</div>
+      <div class="gcard-def">If <code>True</code>, prints a summary table after bulk processing — total, success, not_processed, failed, and elapsed time.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">skip_if_exists</div>
+      <div class="gcard-def">If <code>True</code> (default), skip re-processing if the output file already exists. Set to <code>False</code> to always re-process.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">force</div>
+      <div class="gcard-def">In <code>sign_fix</code> and <code>sub_fix</code>, setting <code>force=True</code> bypasses the quality/confidence classifier and processes every image, even ones that would normally go to <code>not_processed/</code>.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">not_processed/</div>
+      <div class="gcard-def">A sub-folder inside the output directory. Images placed here failed quality checks (e.g. no face found, too small) but did NOT crash — they can be re-processed or manually reviewed.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">Rayon / GIL</div>
+      <div class="gcard-def">photo_ops releases Python's GIL while inside Rust, letting Rayon threads use all CPU cores simultaneously. Use <code>batch_process()</code> or <code>process()</code> — not a Python <code>for</code>-loop — to get full multi-core benefit.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">SeetaFace</div>
+      <div class="gcard-def">The embedded Rust face detector. No external model file needed. Used by <code>has_faces()</code>, <code>sub_fix()</code>, <code>sub_check()</code>, and <code>portrait()</code>.</div>
+    </div>
+    <div class="gcard">
+      <div class="gcard-term">heuristic engine</div>
+      <div class="gcard-def">The signature detection in <code>sign_fix</code> / <code>sign_check</code> uses heuristic scoring — NOT a neural network. This is intentional: COCO-trained models have no "signature" class. The heuristic pipeline is production-grade.</div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKERS SPEC -->
+<section class="section" id="workers-spec">
+  <h2 class="section-title"><span class="icon" style="background:#3d2b1f">🔧</span> Workers Spec — All Forms</h2>
+  <p class="section-desc">The <code>workers=</code> parameter accepts many forms. Only applies to folder / list input — ignored for single files.</p>
+  <div class="code-wrap" style="margin-bottom:20px">
+    <pre><code class="language-python">import photo_ops as ip
+
+ip.gray("photos/", "out/", workers=False)    # serial (1 thread, default)
+ip.gray("photos/", "out/", workers=None)     # serial
+ip.gray("photos/", "out/", workers=0)        # serial
+ip.gray("photos/", "out/", workers=True)     # 10 threads
+ip.gray("photos/", "out/", workers=4)        # exactly 4 threads
+ip.gray("photos/", "out/", workers=-1)       # cpu_count - 1 threads
+ip.gray("photos/", "out/", workers=0.5)      # 50% of logical CPUs (float)
+ip.gray("photos/", "out/", workers="4w")     # 4 threads (string shorthand)
+ip.gray("photos/", "out/", workers="4t")     # 4 threads (string shorthand)
+ip.gray("photos/", "out/", workers="50%")    # 50% of CPUs (string)
+ip.gray("photos/", "out/", workers="max")    # all logical CPUs
+ip.gray("photos/", "out/", workers="all")    # all logical CPUs (alias)
+ip.gray("photos/", "out/", workers="auto")   # adaptive controller (ramps
+                                              # up/down with CPU & RAM load)</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  </div>
+  <table class="workers-table">
+    <tr><th>Value</th><th>Threads</th><th>Notes</th></tr>
+    <tr><td>False / None / 0</td><td>1 (serial)</td><td>Default. Safe, predictable, lowest memory.</td></tr>
+    <tr><td>True</td><td>10</td><td>Quick parallel shortcut.</td></tr>
+    <tr><td>int ≥ 1</td><td>exact count</td><td>e.g. <code>workers=4</code> → 4 threads.</td></tr>
+    <tr><td>int &lt; 0</td><td>cpu − N</td><td><code>-1</code> = cpu_count−1, <code>-2</code> = cpu_count−2.</td></tr>
+    <tr><td>float 0.0–1.0</td><td>N% of CPUs</td><td><code>0.5</code> = 50% of logical CPU count.</td></tr>
+    <tr><td>"Nw" / "Nt"</td><td>N threads</td><td><code>"4w"</code>, <code>"8t"</code> — N workers by string.</td></tr>
+    <tr><td>"N%"</td><td>N% of CPUs</td><td><code>"50%"</code> = 50% of logical CPUs.</td></tr>
+    <tr><td>"max" / "all"</td><td>cpu_count</td><td>All logical CPUs. May cause thermal throttling on laptops.</td></tr>
+    <tr><td>"auto"</td><td>adaptive</td><td>Starts low, ramps up or down based on live CPU temp & RAM. Best for long-running jobs.</td></tr>
+  </table>
+</section>
+
+<!-- BYTES I/O -->
+<section class="section" id="bytes-io">
+  <h2 class="section-title"><span class="icon" style="background:#238636">💾</span> Bytes I/O</h2>
+  <p class="section-desc">Every image operation supports in-memory bytes — no temp files on disk.</p>
+  <div class="code-wrap">
+    <pre><code class="language-python">import photo_ops as ip
+
+# ── File → Bytes (no output file written) ──────────────────────────
+gray_bytes = ip.gray("photo.jpg", None)
+print(type(gray_bytes), len(gray_bytes))   # <class 'bytes'> 123456
+
+# ── Bytes → Bytes (fully in-memory pipeline) ───────────────────────
+with open("photo.jpg", "rb") as f:
+    raw = f.read()
+
+gray_bytes   = ip.gray(raw, None)
+resize_bytes = ip.resize(raw, None, 300, 300)
+blur_bytes   = ip.blur(raw, None, 7)
+sign_bytes   = ip.sign_fix(raw, None, width=500, height=200, force=True)
+passport     = ip.sub_fix(raw, None, width=400, height=500)
+
+# ── Serve via Flask/FastAPI ─────────────────────────────────────────
+# from flask import Flask, send_file
+# import io
+# app = Flask(__name__)
+# @app.route("/gray")
+# def gray():
+#     data = ip.gray("photo.jpg", None)
+#     return send_file(io.BytesIO(data), mimetype="image/jpeg")
+
+# ── Works for ALL functions that have an output_path parameter ─────
+for fn_name in ["gray", "resize", "blur", "sharpen", "edges",
+                "brightness", "saturation", "tint", "compress",
+                "sign_fix", "sub_fix", "enhance_signature",
+                "rotate", "flip", "scale", "crop", "crop_center"]:
+    fn = getattr(ip, fn_name)
+    # fn("photo.jpg", None, ...args...)  →  bytes</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  </div>
+</section>
+
+<!-- CLOUD & AUTH -->
+<section class="section" id="cloud-auth">
+  <h2 class="section-title"><span class="icon" style="background:#1f3d6e">☁️</span> Cloud &amp; Auth</h2>
+  <p class="section-desc">photo_ops supports Google Cloud Storage, Amazon S3, and Azure Blob Storage as drop-in replacements for local paths.</p>
+  <div class="code-wrap">
+    <pre><code class="language-python">import photo_ops as ip
+
+# ── Check which cloud auth methods are active ──────────────────────
+ip.auth_status()
+# Prints a table:
+# ┌──────────────────────────────┬────────────────┐
+# │ Method                       │ Status         │
+# ├──────────────────────────────┼────────────────┤
+# │ GCP Application Default      │ ✅ Active       │
+# │ GCP Service Account          │ ❌ Not set      │
+# │ AWS_ACCESS_KEY_ID            │ ❌ Not set      │
+# │ AZURE_STORAGE_ACCOUNT        │ ❌ Not set      │
+# └──────────────────────────────┴────────────────┘
+
+# ── Set up GCP from terminal ────────────────────────────────────────
+# gcloud auth application-default login
+# OR set env var:
+# export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+
+# ── Set up AWS from terminal ────────────────────────────────────────
+# aws configure
+# OR:
+# export AWS_ACCESS_KEY_ID=...
+# export AWS_SECRET_ACCESS_KEY=...
+
+# ── Set up Azure from terminal ──────────────────────────────────────
+# az login
+# OR:
+# export AZURE_STORAGE_ACCOUNT=...
+# export AZURE_STORAGE_KEY=...
+
+# ── Use cloud path anywhere a local path is accepted ───────────────
+ip.gray("gs://my-bucket/photos/", "out/", workers=4)
+ip.sub_fix("s3://my-bucket/portraits/", "out/", width=400, height=500)
+ip.sign_fix("az://my-container/sigs/", "out/", force=True)
+
+# ── Download files from cloud ──────────────────────────────────────
+ip.download("gs://bucket/photo.jpg", "local.jpg")
+ip.download("https://example.com/photo.jpg", "local.jpg")
+
+# ── List cloud folder and get local cached paths ───────────────────
+local_paths = ip.resolve_folder("gs://bucket/photos/")
+for path in local_paths:
+    ip.gray(path, path.replace("/cache/", "/output/"))
+
+# ── Force refresh GCP token ────────────────────────────────────────
+ip.refresh_gcp_token()   # call if you see 401 Unauthorized errors</code></pre>
+    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FUNCTION REFERENCE
+════════════════════════════════════════════════════════════════════ -->
+
+<!-- CORE -->
+<section class="section" id="fn-core-title">
+  <h2 class="section-title"><span class="icon" style="background:#1f3d6e">🖼️</span> Core Functions</h2>
+</section>
+
+<!-- gray -->
+<div class="fn-card" id="fn-gray">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.gray()</div>
+      <div class="fn-sig">gray(input_path, output_path, skip_if_exists=True, log_file=None, workers=False)</div>
+      <div class="fn-desc">Convert an image or folder of images to grayscale.</div>
+      <div class="fn-badges">
+        <span class="badge badge-bytes">bytes I/O</span>
+        <span class="badge badge-cloud">cloud</span>
+        <span class="badge badge-worker">workers</span>
+      </div>
+    </div>
+    <span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="fn-tabs">
+      <button class="fn-tab active" onclick="switchTab(this,'gray-examples')">Examples</button>
+      <button class="fn-tab" onclick="switchTab(this,'gray-params')">Parameters</button>
+    
+      <button class="fn-tab" onclick="switchTab(this,'try-gray')">⚡ Try it</button></div>
+    <div id="gray-examples" class="fn-tab-pane active">
+      <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+# ── Single file ────────────────────────────────────────────────────
+ip.gray("photo.jpg", "gray.jpg")
+
+# ── Skip if output exists (default True) ──────────────────────────
+ip.gray("photo.jpg", "gray.jpg", skip_if_exists=True)
+
+# ── Result as bytes (output_path=None) ────────────────────────────
+data = ip.gray("photo.jpg", None)           # returns bytes
+
+# ── Raw bytes input + bytes output ────────────────────────────────
+with open("photo.jpg", "rb") as f: raw = f.read()
+gray_bytes = ip.gray(raw, None)
+
+# ── Folder — serial (default) ─────────────────────────────────────
+ip.gray("photos/", "gray_out/")
+
+# ── Folder — 4 parallel workers ───────────────────────────────────
+ip.gray("photos/", "gray_out/", workers=4)
+
+# ── Folder — adaptive workers + audit log ─────────────────────────
+ip.gray("photos/", "gray_out/", workers="auto", log_file="audit.xlsx")
+
+# ── Folder — all CPU cores ────────────────────────────────────────
+ip.gray("photos/", "gray_out/", workers="max")
+
+# ── Cloud bucket (GCS) ────────────────────────────────────────────
+ip.gray("gs://my-bucket/photos/", "gray_out/", workers=4)</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    </div>
+    <div id="gray-params" class="fn-tab-pane">
+      <table class="params-table">
+        <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        <tr><td>input_path</td><td>str | bytes | Path</td><td>File path, folder, cloud URL (gs://, s3://, az://), or raw image bytes.</td></tr>
+        <tr><td>output_path</td><td>str | Path | None</td><td>Destination file or folder. Pass <strong>None</strong> to receive bytes.</td></tr>
+        <tr><td>skip_if_exists</td><td>bool = True</td><td>Skip re-processing if the output file already exists.</td></tr>
+        <tr><td>log_file</td><td>str | None</td><td>Path to .xlsx or .csv audit log. Auto-created if not found.</td></tr>
+        <tr><td>workers</td><td>WorkerSpec = False</td><td>Parallelism for folder input. See Workers Spec section.</td></tr>
+      </table>
+      <div class="returns-line">Returns: <code>None</code> (file written) | <code>bytes</code> (output_path=None) | <code>dict[str,str]</code> (folder)</div>
+    </div>
+
+    <div id="try-gray" class="fn-tab-pane">
+
+      <div id="try-gray" class="try-widget" data-template="ip.gray({inp}, {out}, workers={workers}, log_file={log})">
+        <p class="try-hint">✏ Edit parameters — code updates live</p>
+        <div class="try-form"><div class="try-field"><label>Input path</label><input type="text" data-key="inp" value="photo.jpg" placeholder="photo.jpg" data-quote="auto"></div><div class="try-field"><label>Output path (None=bytes)</label><input type="text" data-key="out" value="gray.jpg" placeholder="gray.jpg" data-quote="auto"></div><div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2" >2</option><option value="4" >4</option><option value="8" >8</option><option value=""auto"" >"auto"</option><option value=""max"" >"max"</option></select></div><div class="try-field"><label>log_file (.xlsx/.csv)</label><input type="text" data-key="log" value="None" placeholder="None" data-quote="auto"></div></div>
+        <div class="try-output-wrap">
+          <div class="code-wrap">
+            <pre><code class="try-output language-python"></code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- resize -->
+<div class="fn-card" id="fn-resize">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.resize()</div>
+      <div class="fn-sig">resize(input_path, output_path, width, height, keep_ratio=False, log_file=None, workers=False)</div>
+      <div class="fn-desc">Resize an image to exact pixel dimensions, optionally preserving aspect ratio.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-cloud">cloud</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="fn-tabs">
+      <button class="fn-tab active" onclick="switchTab(this,'resize-examples')">Examples</button>
+      <button class="fn-tab" onclick="switchTab(this,'resize-params')">Parameters</button>
+    
+      <button class="fn-tab" onclick="switchTab(this,'try-resize')">⚡ Try it</button></div>
+    <div id="resize-examples" class="fn-tab-pane active">
+      <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.resize("photo.jpg", "small.jpg", 300, 400)                 # exact
+ip.resize("photo.jpg", "keep.jpg",  300, 400, keep_ratio=True) # preserve ratio
+data = ip.resize("photo.jpg", None, 128, 128)                 # bytes out
+with open("photo.jpg","rb") as f: raw=f.read()
+thumb = ip.resize(raw, None, 64, 64)                          # bytes in+out
+ip.resize("photos/", "out/", 800, 600, workers=4, log_file="resize.xlsx")
+ip.resize("gs://bucket/photos/", "out/", 1280, 720, workers="auto")</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    </div>
+    <div id="resize-params" class="fn-tab-pane">
+      <table class="params-table">
+        <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        <tr><td>width</td><td>int</td><td>Target width in pixels.</td></tr>
+        <tr><td>height</td><td>int</td><td>Target height in pixels.</td></tr>
+        <tr><td>keep_ratio</td><td>bool = False</td><td>Preserve aspect ratio — output may be smaller than w×h.</td></tr>
+        <tr><td>log_file</td><td>str | None</td><td>Audit log path (.xlsx or .csv).</td></tr>
+        <tr><td>workers</td><td>WorkerSpec = False</td><td>Parallelism for folder input.</td></tr>
+      </table>
+      <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+    </div>
+
+    <div id="try-resize" class="fn-tab-pane">
+
+      <div id="try-resize" class="try-widget" data-template="ip.resize({inp}, {out}, {w}, {h}, keep_ratio={ratio}, workers={workers})">
+        <p class="try-hint">✏ Edit parameters — code updates live</p>
+        <div class="try-form"><div class="try-field"><label>Input path</label><input type="text" data-key="inp" value="photo.jpg" placeholder="photo.jpg" data-quote="auto"></div><div class="try-field"><label>Output path</label><input type="text" data-key="out" value="out.jpg" placeholder="out.jpg" data-quote="auto"></div><div class="try-field"><label>Width (px)</label><input type="number" data-key="w" value="800"></div><div class="try-field"><label>Height (px)</label><input type="number" data-key="h" value="600"></div><div class="try-field"><label>keep_ratio</label><select data-key="ratio"><option value="False" selected>False</option><option value="True" >True</option></select></div><div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2" >2</option><option value="4" >4</option><option value="8" >8</option><option value=""auto"" >"auto"</option></select></div></div>
+        <div class="try-output-wrap">
+          <div class="code-wrap">
+            <pre><code class="try-output language-python"></code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- info -->
+<div class="fn-card" id="fn-info">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.info()</div>
+      <div class="fn-sig">info(input_path)</div>
+      <div class="fn-desc">Return width, height, channels and SHA-256 checksum of an image.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes input</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+meta = ip.info("photo.jpg")
+print(meta)
+# {'width': 1920, 'height': 1080, 'channels': 3, 'checksum': 'a1b2...'}
+
+w, h = meta["width"], meta["height"]
+
+# Bytes input
+with open("photo.jpg","rb") as f: raw=f.read()
+print(ip.info(raw))
+
+# Folder — returns dict keyed by filename
+all_info = ip.info("photos/")
+for fname, m in all_info.items():
+    print(fname, m["width"], "x", m["height"])</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>dict</code> (single) | <code>dict[str, dict]</code> (folder)</div>
+  </div>
+</div>
+
+<!-- rotate -->
+<div class="fn-card" id="fn-rotate">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.rotate()</div>
+      <div class="fn-sig">rotate(input_path, output_path, angle, log_file=None, workers=False)</div>
+      <div class="fn-desc">Rotate image by exactly 90, 180, or 270 degrees (lossless).</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.rotate("photo.jpg", "rot90.jpg",  90)   # 90° clockwise
+ip.rotate("photo.jpg", "rot180.jpg", 180)
+ip.rotate("photo.jpg", "rot270.jpg", 270)  # = 90° counter-clockwise
+
+data = ip.rotate("photo.jpg", None, 90)    # bytes
+ip.rotate("photos/", "out/", 90, workers=4)</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+    <div class="alert alert-warn">⚠ Only 90, 180, 270 are accepted (lossless transposition). For arbitrary angles use <code>sub_fix()</code>.</div>
+  </div>
+</div>
+
+<!-- CROP -->
+<div class="fn-card" id="fn-crop">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.crop()</div>
+      <div class="fn-sig">crop(input_path, output_path, x, y, width, height, log_file=None, workers=False)</div>
+      <div class="fn-desc">Crop to an exact rectangle defined by top-left corner and dimensions.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.crop("photo.jpg", "out.jpg", x=100, y=50, width=640, height=480)
+ip.crop("photo.jpg", "tl.jpg",  0, 0, 300, 300)  # top-left 300×300
+data = ip.crop("photo.jpg", None, 0, 0, 200, 200) # bytes
+ip.crop("photos/", "out/", 0, 0, 800, 600, workers=4)</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+  </div>
+</div>
+
+<!-- crop_center -->
+<div class="fn-card" id="fn-crop_center">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.crop_center() &nbsp;/&nbsp; ip.auto_crop()</div>
+      <div class="fn-sig">crop_center(input_path, output_path, width, height, log_file=None, workers=False)</div>
+      <div class="fn-desc">Crop a centred rectangle of the given size. <code>auto_crop</code> is an identical alias.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.crop_center("photo.jpg", "center.jpg", 512, 512)
+ip.crop_center("photo.jpg", "thumb.jpg",  128, 128)
+data = ip.crop_center("photo.jpg", None, 256, 256)    # bytes
+ip.crop_center("photos/", "out/", 800, 600, workers="auto")
+# auto_crop is identical:
+ip.auto_crop("photo.jpg", "out.jpg", 400, 400)</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+  </div>
+</div>
+
+<!-- flip -->
+<div class="fn-card" id="fn-flip">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.flip()</div>
+      <div class="fn-sig">flip(input_path, output_path, direction='horizontal', workers=False)</div>
+      <div class="fn-desc">Flip image horizontally (mirror) or vertically (upside-down).</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.flip("photo.jpg", "mirror.jpg",   "horizontal")
+ip.flip("photo.jpg", "upsdown.jpg",  "vertical")
+data = ip.flip("photo.jpg", None, "horizontal")       # bytes
+ip.flip("photos/", "out/", direction="horizontal", workers=4)</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+  </div>
+</div>
+
+<!-- scale -->
+<div class="fn-card" id="fn-scale">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.scale()</div>
+      <div class="fn-sig">scale(input_path, output_path, factor, workers=False)</div>
+      <div class="fn-desc">Scale image by a float factor — 0.5 = half size, 2.0 = double.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.scale("photo.jpg", "half.jpg",   0.5)   # half size
+ip.scale("photo.jpg", "double.jpg", 2.0)   # double size
+data = ip.scale("photo.jpg", None, 0.25)   # bytes
+ip.scale("photos/", "out/", factor=0.5, workers="auto")</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+  </div>
+</div>
+
+<!-- ADJUSTMENTS -->
+<section class="section" id="fn-brightness">
+  <h2 class="section-title"><span class="icon" style="background:#3d2b1f">🎨</span> Adjustments</h2>
+</section>
+
+<!-- brightness -->
+<div class="fn-card">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.brightness()</div>
+      <div class="fn-sig">brightness(input_path, output_path, value=0.0, log_file=None, workers=False)</div>
+      <div class="fn-desc">Adjust brightness by a pixel offset. Positive = brighter, negative = darker.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.brightness("photo.jpg", "bright.jpg",  30)   # lighten
+ip.brightness("photo.jpg", "dark.jpg",   -40)   # darken
+data = ip.brightness("photo.jpg", None, 20)     # bytes
+ip.brightness("photos/", "out/", value=25, workers=4, log_file="audit.xlsx")
+ip.brightness("gs://bucket/photos/", "out/", value=30, workers="auto")</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code> &nbsp;·&nbsp; value clamped to [−255, +255]</div>
+
+    <div id="try-brightness" class="fn-tab-pane">
+
+      <div id="try-brightness" class="try-widget" data-template="ip.brightness({inp}, {out}, value={val}, workers={workers})">
+        <p class="try-hint">✏ Edit parameters — code updates live</p>
+        <div class="try-form"><div class="try-field"><label>Input path</label><input type="text" data-key="inp" value="photo.jpg" placeholder="photo.jpg" data-quote="auto"></div><div class="try-field"><label>Output path</label><input type="text" data-key="out" value="out.jpg" placeholder="out.jpg" data-quote="auto"></div><div class="try-field"><label>Value (−255 to +255)</label><input type="number" data-key="val" value="20"></div><div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2" >2</option><option value="4" >4</option><option value="8" >8</option><option value=""auto"" >"auto"</option></select></div></div>
+        <div class="try-output-wrap">
+          <div class="code-wrap">
+            <pre><code class="try-output language-python"></code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- saturation -->
+<div class="fn-card" id="fn-saturation">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.saturation()</div>
+      <div class="fn-sig">saturation(input_path, output_path, factor, log_file=None, workers=False)</div>
+      <div class="fn-desc">Multiply colour saturation. 0.0 = greyscale, 1.0 = unchanged, 2.0 = vivid.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.saturation("photo.jpg", "vivid.jpg",  1.8)   # vivid
+ip.saturation("photo.jpg", "faded.jpg",  0.2)   # faded
+ip.saturation("photo.jpg", "gray.jpg",   0.0)   # full greyscale
+data = ip.saturation("photo.jpg", None, 1.5)    # bytes
+ip.saturation("photos/", "out/", factor=1.5, workers="auto")</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+  </div>
+</div>
+
+<!-- tint -->
+<div class="fn-card" id="fn-tint">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.tint()</div>
+      <div class="fn-sig">tint(input_path, output_path, r_shift=0, g_shift=0, b_shift=0, log_file=None, workers=False)</div>
+      <div class="fn-desc">Shift RGB channels independently — create warm, cool, or creative colour casts.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+ip.tint("photo.jpg", "warm.jpg", r_shift=30, g_shift=10, b_shift=-20)
+ip.tint("photo.jpg", "cool.jpg", r_shift=-20, b_shift=30)
+ip.tint("photo.jpg", "red.jpg",  r_shift=40)
+data = ip.tint("photo.jpg", None, r_shift=20)         # bytes
+ip.tint("photos/", "out/", r_shift=20, workers=4)</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+  </div>
+</div>
+
+<!-- color_grade draw_rect add_text morphology — compact cards -->
+<div class="fn-card" id="fn-color_grade">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div><div class="fn-name">ip.color_grade()</div><div class="fn-sig">color_grade(input_path, output_path, preset='cinematic', log_file=None, workers=False)</div><div class="fn-desc">Apply a named colour grading look to the image.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span></div></div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.color_grade("photo.jpg", "cine.jpg",    "cinematic")
+ip.color_grade("photo.jpg", "warm.jpg",    "warm")
+ip.color_grade("photo.jpg", "cool.jpg",    "cool")
+ip.color_grade("photo.jpg", "vintage.jpg", "vintage")
+data = ip.color_grade("photo.jpg", None, "cinematic")    # bytes
+ip.color_grade("photos/", "out/", preset="cinematic", workers="auto")</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Presets: <code>'cinematic'</code> <code>'warm'</code> <code>'cool'</code> <code>'vintage'</code></div>
+  </div>
+</div>
+
+<div class="fn-card" id="fn-draw_rect">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div><div class="fn-name">ip.draw_rect()</div><div class="fn-sig">draw_rect(input_path, output_path, x, y, width, height, r=255, g=0, b=0, thickness=1, color=None, ...)</div><div class="fn-desc">Draw a coloured rectangle outline onto the image.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span></div></div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.draw_rect("photo.jpg", "rect.jpg", 10, 10, 200, 150)              # red
+ip.draw_rect("photo.jpg", "blue.jpg", 10, 10, 200, 150, r=0, g=0, b=255, thickness=4)
+ip.draw_rect("photo.jpg", "grn.jpg",  10, 10, 200, 150, color="green", thickness=2)
+ip.draw_rect("photo.jpg", "hex.jpg",  50, 50, 100, 80,  color="#FF6600", thickness=3)
+data = ip.draw_rect("photo.jpg", None, 0, 0, 100, 100)               # bytes</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">color= accepts: <code>'red'</code> <code>'green'</code> <code>'blue'</code> <code>'yellow'</code> <code>'cyan'</code> <code>'#RRGGBB'</code></div>
+  </div>
+</div>
+
+<div class="fn-card" id="fn-add_text">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div><div class="fn-name">ip.add_text()</div><div class="fn-sig">add_text(input_path, output_path, text, font_path=None, font_size=32, x=None, y=None, color=None, bg_color=None, opacity=1.0, position=None, ...)</div><div class="fn-desc">Overlay text onto an image with optional font, colour, position, and background fill.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span></div></div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.add_text("photo.jpg", "out.jpg", "Hello World")
+ip.add_text("photo.jpg", "out.jpg", "Sample", font_size=48, color="blue")
+ip.add_text("photo.jpg", "out.jpg", "Draft", color="#FF6600", font_size=36)
+ip.add_text("photo.jpg", "out.jpg", "Caption", x=20, y=30, font_size=24)
+ip.add_text("photo.jpg", "out.jpg", "WATERMARK",
+            position="center", font_size=60, color="white", opacity=0.5)
+ip.add_text("photo.jpg", "out.jpg", "CONFIDENTIAL",
+            color="white", bg_color="#CC0000", font_size=30)
+data = ip.add_text("photo.jpg", None, "Bytes", font_size=24)           # bytes</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">position= accepts: <code>'center'</code> <code>'top'</code> <code>'bottom'</code> or (x, y) tuple</div>
+  </div>
+</div>
+
+<div class="fn-card" id="fn-morphology">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div><div class="fn-name">ip.morphology()</div><div class="fn-sig">morphology(input_path, output_path, op='dilate', kernel_size=3, log_file=None, workers=False)</div><div class="fn-desc">Apply morphological dilation or erosion to a binary/greyscale image.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span></div></div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.morphology("mask.jpg", "dilated.jpg", op="dilate", kernel_size=3)
+ip.morphology("mask.jpg", "eroded.jpg",  op="erode",  kernel_size=3)
+ip.morphology("mask.jpg", "big.jpg",     op="dilate", kernel_size=7)
+data = ip.morphology("mask.jpg", None, "dilate", 3)                   # bytes</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">op= <code>'dilate'</code> or <code>'erode'</code> &nbsp;·&nbsp; kernel_size must be odd</div>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<section class="section" id="fn-blur">
+  <h2 class="section-title"><span class="icon" style="background:#1f3d2b">✨</span> Filters</h2>
+</section>
+
+<div class="fn-card">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div><div class="fn-name">ip.blur()</div><div class="fn-sig">blur(input_path, output_path, amount=5, log_file=None, workers=False)</div><div class="fn-desc">Apply Gaussian blur. Higher amount = stronger blur.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.blur("photo.jpg", "mild.jpg",   3)
+ip.blur("photo.jpg", "strong.jpg", 15)
+ip.blur("photo.jpg", "default.jpg")          # amount=5 default
+data = ip.blur("photo.jpg", None, 7)         # bytes
+ip.blur("photos/", "out/", amount=5, workers="auto", log_file="audit.xlsx")</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+
+    <div id="try-blur" class="fn-tab-pane">
+
+      <div id="try-blur" class="try-widget" data-template="ip.blur({inp}, {out}, amount={amount}, workers={workers})">
+        <p class="try-hint">✏ Edit parameters — code updates live</p>
+        <div class="try-form"><div class="try-field"><label>Input path</label><input type="text" data-key="inp" value="photo.jpg" placeholder="photo.jpg" data-quote="auto"></div><div class="try-field"><label>Output path</label><input type="text" data-key="out" value="out.jpg" placeholder="out.jpg" data-quote="auto"></div><div class="try-field"><label>Blur amount</label><input type="number" data-key="amount" value="5"></div><div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2" >2</option><option value="4" >4</option><option value="8" >8</option><option value=""auto"" >"auto"</option></select></div></div>
+        <div class="try-output-wrap">
+          <div class="code-wrap">
+            <pre><code class="try-output language-python"></code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fn-card" id="fn-sharpen"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.sharpen()</div><div class="fn-sig">sharpen(input_path, output_path, log_file=None, workers=False)</div><div class="fn-desc">Apply unsharp-mask sharpening.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.sharpen("photo.jpg", "sharp.jpg")
+data = ip.sharpen("photo.jpg", None)          # bytes
+ip.sharpen("photos/", "out/", workers=4)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-edges"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.edges()</div><div class="fn-sig">edges(input_path, output_path, log_file=None, workers=False)</div><div class="fn-desc">Run Canny edge detection — returns a binary edge map (white on black).</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.edges("photo.jpg", "edges.jpg")
+data = ip.edges("photo.jpg", None)            # bytes
+ip.edges("photos/", "out/", workers=4)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-edge_art"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.edge_art()</div><div class="fn-sig">edge_art(input_path, output_path, blur_bg=35, workers=False)</div><div class="fn-desc">Artistic effect: sharp edges on a heavily blurred background.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.edge_art("photo.jpg", "art.jpg")                   # default blur_bg=35
+ip.edge_art("photo.jpg", "strong.jpg", blur_bg=60)
+data = ip.edge_art("photo.jpg", None, blur_bg=35)     # bytes
+ip.edge_art("photos/", "out/", blur_bg=40, workers="auto")</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-portrait"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.portrait()</div><div class="fn-sig">portrait(input_path, output_path, blur_bg=25, strict=False, workers=False)</div><div class="fn-desc">Portrait mode: face region kept sharp, background blurred. No GPU required.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-face">face detection</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.portrait("photo.jpg", "portrait.jpg")              # blur_bg=25 default
+ip.portrait("photo.jpg", "strong.jpg",  blur_bg=50)
+ip.portrait("photo.jpg", "strict.jpg",  strict=True)  # skip non-portraits
+data = ip.portrait("photo.jpg", None, blur_bg=30)     # bytes
+ip.portrait("photos/", "out/", blur_bg=25, workers=4)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="alert alert-info">ℹ Uses embedded SeetaFace detector. strict=True routes images without a face to not_processed/.</div></div></div>
+
+<div class="fn-card" id="fn-enhance"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.enhance()</div><div class="fn-sig">enhance(input_path, output_path, log_file=None, workers=False)</div><div class="fn-desc">Enhance quality with adaptive local contrast (CLAHE-style).</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.enhance("photo.jpg", "enhanced.jpg")
+data = ip.enhance("photo.jpg", None)          # bytes
+ip.enhance("photos/", "out/", workers="auto")</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-deblur"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.deblur()</div><div class="fn-sig">deblur(input_path, output_path, log_file=None, workers=False)</div><div class="fn-desc">Remove motion blur using Wiener-inspired sharpening.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.deblur("blurry.jpg", "deblurred.jpg")
+data = ip.deblur("blurry.jpg", None)          # bytes
+ip.deblur("photos/", "out/", workers=4)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-compress"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.compress()</div><div class="fn-sig">compress(input_path, output_path, format='webp', quality=80, log_file=None, workers=False)</div><div class="fn-desc">Re-encode image at given quality to reduce file size.</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body">
+    <div class="fn-tabs">
+      <button class="fn-tab active" onclick="switchTab(this,'compress-ex')">Examples</button>
+      <button class="fn-tab" onclick="switchTab(this,'try-compress')">&#x26A1; Try it</button>
+    </div>
+    <div id="compress-ex" class="fn-tab-pane active">
+      <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.compress("photo.jpg", "out.webp", "webp", 80)    # WebP 80%
+ip.compress("photo.jpg", "out.jpg",  "jpg",  75)    # JPEG 75%
+ip.compress("photo.jpg", "out.png",  "png",  90)    # PNG (lossless)
+ip.compress("photo.jpg", "tiny.webp","webp", 1)     # max compression
+data = ip.compress("photo.jpg", None, "webp", 70)   # bytes
+ip.compress("photos/", "out/", format="webp", quality=75, workers="auto")</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <div class="returns-line">quality: 1 (smallest) to 100 (best). PNG ignores quality (lossless).</div>
+    </div>
+    <div id="try-compress" class="fn-tab-pane">
+      <div id="try-compress-w" class="try-widget" class="try-widget" data-template="ip.compress({inp}, {out}, format={fmt}, quality={q}, workers={workers})">
+        <p class="try-hint">&#x270F; Edit parameters &#x2014; code updates live</p>
+        <div class="try-form">
+          <div class="try-field"><label>Input path</label><input type="text" data-key="inp" data-quote="auto" value="photo.jpg" placeholder="photo.jpg"></div>
+          <div class="try-field"><label>Output path</label><input type="text" data-key="out" data-quote="auto" value="out.webp" placeholder="out.webp"></div>
+          <div class="try-field"><label>Format</label><select data-key="fmt"><option value="&quot;webp&quot;" selected>"webp"</option><option value="&quot;jpg&quot;">"jpg"</option><option value="&quot;png&quot;">"png"</option></select></div>
+          <div class="try-field"><label>Quality (1&#x2013;100)</label><input type="number" data-key="q" value="80"></div>
+          <div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2">2</option><option value="4">4</option><option value="8">8</option><option value="&quot;auto&quot;">"auto"</option></select></div>
+        </div>
+        <div class="try-output-wrap"><div class="code-wrap"><pre><code class="try-output language-python"></code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div>
+      </div>
+    </div>
+  </div></div>
+
+<!-- FRAMES -->
+<section class="section" id="fn-extract_frames">
+  <h2 class="section-title"><span class="icon" style="background:#3d3d1f">🎞️</span> Frames</h2>
+</section>
+
+<div class="fn-card"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.extract_frames()</div><div class="fn-sig">extract_frames(input_path, output_dir, log_file=None, workers=False)</div><div class="fn-desc">Extract all frames from a GIF animation into numbered PNG files.</div><div class="fn-badges"><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.extract_frames("animation.gif", "frames/")
+# → frames/frame_0000.png, frame_0001.png, ...
+ip.extract_frames("gifs/", "all_frames/", workers=4)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-extract_frames_ex"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.extract_frames_ex()</div><div class="fn-sig">extract_frames_ex(input_path, output_dir, blur_threshold=0.0, min_diff=3.0, score_pct=0.3)</div><div class="fn-desc">Extract key frames with blur and similarity filtering — removes duplicates and blurry frames.</div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+n = ip.extract_frames_ex("animation.gif", "keyframes/")
+print(f"Extracted {n} key frames")
+
+# Strict — only sharp, very different frames
+n = ip.extract_frames_ex("animation.gif", "keyframes/",
+                          score_pct=0.5, min_diff=8.0)
+
+# Loose — keep almost all frames
+n = ip.extract_frames_ex("animation.gif", "keyframes/",
+                          score_pct=0.1, min_diff=1.0)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>int</code> — number of key frames saved</div></div></div>
+
+<!-- SIGNATURE & SUBJECT -->
+<section class="section" id="fn-enhance_signature">
+  <h2 class="section-title"><span class="icon" style="background:#3d2b3d">✍️</span> Signature &amp; Subject Intelligence</h2>
+  <p class="section-desc">Heuristic-based pipeline — no neural network, no COCO model, no GPU required. Works out of the box on first import.</p>
+  <div class="alert alert-info">ℹ <strong>Typical pipeline:</strong> <code>enhance_signature()</code> → <code>sign_fix()</code> for signatures &nbsp;|&nbsp; <code>sub_fix()</code> alone for portraits.</div>
+</section>
+
+<div class="fn-card"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.enhance_signature()</div><div class="fn-sig">enhance_signature(input_path, output_path, block_size=11, c=2.0, workers=False)</div><div class="fn-desc">Pre-process signature: remove shadow, boost local contrast. Run BEFORE sign_fix().</div><div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-sig">signature</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.enhance_signature("sig.jpg", "sig_clean.jpg")
+
+# Typical pipeline: enhance → fix
+ip.enhance_signature("sig.jpg", "sig_enh.jpg")
+ip.sign_fix("sig_enh.jpg", "sig_final.jpg", width=500, height=200)
+
+data = ip.enhance_signature("sig.jpg", None)     # bytes
+ip.enhance_signature("sigs/", "enh/", workers=4)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-has_faces"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.has_faces()</div><div class="fn-sig">has_faces(input_path)</div><div class="fn-desc">Return True if the image contains at least one face (SeetaFace detector).</div><div class="fn-badges"><span class="badge badge-bytes">bytes input</span><span class="badge badge-face">SeetaFace</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+print(ip.has_faces("photo.jpg"))        # True or False
+with open("photo.jpg","rb") as f: raw=f.read()
+print(ip.has_faces(raw))                # True or False
+import os
+for fname in os.listdir("photos/"):
+    if ip.has_faces(os.path.join("photos/", fname)):
+        print("Portrait:", fname)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>bool</code></div></div></div>
+
+<!-- sign_fix -->
+<div class="fn-card" id="fn-sign_fix">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.sign_fix() ✦</div>
+      <div class="fn-sig">sign_fix(input_path, output_path, width=None, height=None, force=False, log_file=None, workers=False, stats=False)</div>
+      <div class="fn-desc">Intelligent Signature Fix — orient → invert-normalise → classify → tight-crop → resize.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-cloud">cloud</span><span class="badge badge-sig">signature</span><span class="badge badge-worker">workers</span><span class="badge badge-rust">Rust heuristic</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="fn-tabs">
+      <button class="fn-tab active" onclick="switchTab(this,'signfix-ex')">Examples</button>
+      <button class="fn-tab" onclick="switchTab(this,'signfix-pipeline')">Pipeline</button>
+      <button class="fn-tab" onclick="switchTab(this,'signfix-params')">Parameters</button>
+    
+      <button class="fn-tab" onclick="switchTab(this,'try-blur')">⚡ Try it</button>
+      <button class="fn-tab" onclick="switchTab(this,'try-brightness')">⚡ Try it</button>
+      <button class="fn-tab" onclick="switchTab(this,'try-compress')">⚡ Try it</button>
+      <button class="fn-tab" onclick="switchTab(this,'try-sign_fix')">⚡ Try it</button></div>
+    <div id="signfix-ex" class="fn-tab-pane active">
+      <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+# ── Single file ────────────────────────────────────────────────────
+ip.sign_fix("sig.jpg", "sig_out.jpg")
+ip.sign_fix("sig.jpg", "sig_out.jpg", width=500, height=200)
+
+# ── Force (bypass classifier) ─────────────────────────────────────
+ip.sign_fix("img.jpg", "out.jpg", force=True)
+
+# ── Bytes ──────────────────────────────────────────────────────────
+data = ip.sign_fix("sig.jpg", None, width=500, height=200, force=True)
+
+# ── Folder — serial ───────────────────────────────────────────────
+# Output sub-dirs: success/  failed/  not_processed/
+ip.sign_fix("sigs/", "out/")
+
+# ── Folder — adaptive workers + audit log ─────────────────────────
+ip.sign_fix("sigs/", "out/", workers="auto", width=500, height=200,
+            log_file="audit.xlsx", stats=True)
+
+# ── Cloud bucket ──────────────────────────────────────────────────
+ip.sign_fix("gs://bucket/sigs/", "out/", workers=4)
+
+# ── Full production pipeline ──────────────────────────────────────
+ip.enhance_signature("raw_sigs/", "enh_sigs/", workers=4)
+ip.sign_fix("enh_sigs/", "final_sigs/",
+            width=500, height=200, workers="auto",
+            log_file="sign_audit.xlsx", stats=True)</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    </div>
+    <div id="signfix-pipeline" class="fn-tab-pane">
+      <div class="pipeline">
+        <div class="pipeline-step"><div class="step-num">1</div><div class="step-content"><strong>Orientation fix</strong> — EXIF metadata + LGC face/text detector → rotates to correct upright position (90° steps).</div></div>
+        <div class="pipeline-step"><div class="step-num">2</div><div class="step-content"><strong>Dark-background inversion</strong> — detects white ink on dark background and inverts so the smart-crop always sees dark ink on white.</div></div>
+        <div class="pipeline-step"><div class="step-num">3</div><div class="step-content"><strong>Signature confidence check</strong> — primary heuristic classifier + fallback. Low-confidence images → <code>not_processed/</code>. Use <code>force=True</code> to skip.</div></div>
+        <div class="pipeline-step"><div class="step-num">4</div><div class="step-content"><strong>Tight ink bounding-box crop</strong> — finds the ink content region, adds margin, crops cleanly.</div></div>
+        <div class="pipeline-step"><div class="step-num">5</div><div class="step-content"><strong>Resize to w×h</strong> — Lanczos resampling to final passport/form dimensions.</div></div>
+      </div>
+    </div>
+    <div id="signfix-params" class="fn-tab-pane">
+      <table class="params-table">
+        <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        <tr><td>width</td><td>int | None</td><td>Output width in pixels. None = keep natural crop size.</td></tr>
+        <tr><td>height</td><td>int | None</td><td>Output height in pixels.</td></tr>
+        <tr><td>force</td><td>bool = False</td><td>Bypass classifier — process every image regardless of confidence.</td></tr>
+        <tr><td>stats</td><td>bool = False</td><td>Print summary table after bulk processing.</td></tr>
+        <tr><td>workers</td><td>WorkerSpec = False</td><td>Parallelism for folder input.</td></tr>
+      </table>
+      <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+    </div>
+
+    <div id="try-sign_fix" class="fn-tab-pane">
+
+      <div id="try-sign_fix" class="try-widget" data-template="ip.sign_fix({inp}, {out}, width={w}, height={h}, force={force}, workers={workers})">
+        <p class="try-hint">✏ Edit parameters — code updates live</p>
+        <div class="try-form"><div class="try-field"><label>Input path</label><input type="text" data-key="inp" value="sig.jpg" placeholder="sig.jpg" data-quote="auto"></div><div class="try-field"><label>Output path</label><input type="text" data-key="out" value="out.jpg" placeholder="out.jpg" data-quote="auto"></div><div class="try-field"><label>Width (px)</label><input type="number" data-key="w" value="500"></div><div class="try-field"><label>Height (px)</label><input type="number" data-key="h" value="200"></div><div class="try-field"><label>force (bypass classifier)</label><select data-key="force"><option value="False" selected>False</option><option value="True" >True</option></select></div><div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2" >2</option><option value="4" >4</option><option value="8" >8</option><option value=""auto"" >"auto"</option></select></div></div>
+        <div class="try-output-wrap">
+          <div class="code-wrap">
+            <pre><code class="try-output language-python"></code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- sign_check -->
+<div class="fn-card" id="fn-sign_check">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.sign_check()</div>
+      <div class="fn-sig">sign_check(input_path, output_path=None, force=False, log_file=None, stats=False, workers=False)</div>
+      <div class="fn-desc">Classify images as: <strong>signature</strong> / <strong>subject (face)</strong> / <strong>not_processed</strong>.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes input</span><span class="badge badge-cloud">cloud</span><span class="badge badge-sig">signature</span><span class="badge badge-worker">workers</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+is_sig = ip.sign_check("doc.jpg")     # True = signature, False = not
+print("Is signature:", is_sig)
+
+# Bytes input
+with open("doc.jpg","rb") as f: raw=f.read()
+print(ip.sign_check(raw))
+
+# Folder — sort into sub-dirs
+# success/ = signatures  |  subject/ = portraits  |  not_processed/ = ambiguous
+ip.sign_check("mixed/", "sorted/", stats=True, log_file="check.xlsx")
+ip.sign_check("mixed/", "sorted/", workers=4, stats=True)
+ip.sign_check("gs://bucket/raw/", "sorted/", workers=4, stats=True)</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>bool</code> (single file) | <code>dict[str,str]</code> (folder)</div>
+  </div>
+</div>
+
+<!-- sub_fix -->
+<div class="fn-card" id="fn-sub_fix">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.sub_fix() ✦</div>
+      <div class="fn-sig">sub_fix(input_path, output_path=None, width=None, height=None, force=False, log_file=None, workers=False, stats=False)</div>
+      <div class="fn-desc">Intelligent Subject Fix — orient, de-tilt, and passport-crop a portrait. Handles clear images with large plain backgrounds and tilted/damaged photos.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">bytes I/O</span><span class="badge badge-cloud">cloud</span><span class="badge badge-face">SeetaFace</span><span class="badge badge-worker">workers</span><span class="badge badge-rust">Rust heuristic</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="fn-tabs">
+      <button class="fn-tab active" onclick="switchTab(this,'subfix-ex')">Examples</button>
+      <button class="fn-tab" onclick="switchTab(this,'subfix-pipeline')">Pipeline</button>
+      <button class="fn-tab" onclick="switchTab(this,'subfix-params')">Parameters</button>
+    
+      <button class="fn-tab" onclick="switchTab(this,'try-sub_fix')">⚡ Try it</button></div>
+    <div id="subfix-ex" class="fn-tab-pane active">
+      <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+# ── Normal portrait → passport crop ──────────────────────────────
+ip.sub_fix("portrait.jpg", "passport.jpg", width=400, height=500)
+
+# ── Clear photo with large plain background ───────────────────────
+# Previously would go to not_processed/ — now handled correctly
+ip.sub_fix("passport_with_white_bg.jpg", "out.jpg", width=400, height=500)
+
+# ── Tilted or damaged scan ─────────────────────────────────────────
+# Orientation fix + inner-region tilt correction applied automatically
+ip.sub_fix("tilted_id.jpg", "out.jpg", width=400, height=500)
+
+# ── Force (bypass face requirement — centre crop fallback) ────────
+ip.sub_fix("any_photo.jpg", "out.jpg", force=True)
+
+# ── Bytes out ────────────────────────────────────────────────────
+data = ip.sub_fix("portrait.jpg", None, width=400, height=500)
+
+# ── Folder ────────────────────────────────────────────────────────
+# Output sub-dirs: success/  failed/  not_processed/
+ip.sub_fix("portraits/", "out/")
+ip.sub_fix("portraits/", "out/", width=400, height=500,
+           workers="auto", log_file="audit.xlsx", stats=True)
+
+# ── Cloud ─────────────────────────────────────────────────────────
+ip.sub_fix("gs://bucket/portraits/", "out/",
+           width=400, height=500, workers=4, stats=True)</code></pre>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    </div>
+    <div id="subfix-pipeline" class="fn-tab-pane">
+      <div class="pipeline">
+        <div class="pipeline-step"><div class="step-num">1</div><div class="step-content"><strong>Coarse orientation fix</strong> — EXIF metadata + SeetaFace LGC detector → rotates to upright (90° steps).</div></div>
+        <div class="pipeline-step"><div class="step-num">2</div><div class="step-content"><strong>Fine tilt correction</strong> — <code>py_detect_tilt_angle</code> sweeps ±15° to find the head-upright angle. Counter-rotates by the detected offset.</div></div>
+        <div class="pipeline-step"><div class="step-num">3</div><div class="step-content"><strong>Face-aware passport crop</strong> — ICAO-style framing: crown 15%, chin 78%, side margins 15%. Uses <code>py_smart_crop_v2</code>.</div></div>
+        <div class="pipeline-step"><div class="step-num">3b</div><div class="step-content"><strong>Large-background retry</strong> — If no face found on the full image, pre-crops to the inner 60% (strips the large plain border), re-runs tilt detection, then retries face-aware crop. This is what fixes the "passport-with-white-bg" case.</div></div>
+        <div class="pipeline-step"><div class="step-num">4</div><div class="step-content"><strong>Fallback</strong> — No face found + force=False → <code>not_processed/</code>. No face found + force=True → centre crop with fixed dimensions.</div></div>
+      </div>
+    </div>
+    <div id="subfix-params" class="fn-tab-pane">
+      <table class="params-table">
+        <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+        <tr><td>width</td><td>int | None</td><td>Output width in pixels. None = keep natural crop size.</td></tr>
+        <tr><td>height</td><td>int | None</td><td>Output height in pixels.</td></tr>
+        <tr><td>force</td><td>bool = False</td><td>Bypass face requirement — falls back to centre crop.</td></tr>
+        <tr><td>stats</td><td>bool = False</td><td>Print summary table after bulk processing.</td></tr>
+        <tr><td>workers</td><td>WorkerSpec = False</td><td>Parallelism for folder input.</td></tr>
+      </table>
+      <div class="returns-line">Returns: <code>None</code> | <code>bytes</code> | <code>dict[str,str]</code></div>
+    </div>
+
+    <div id="try-sub_fix" class="fn-tab-pane">
+
+      <div id="try-sub_fix" class="try-widget" data-template="ip.sub_fix({inp}, {out}, width={w}, height={h}, force={force}, workers={workers})">
+        <p class="try-hint">✏ Edit parameters — code updates live</p>
+        <div class="try-form"><div class="try-field"><label>Input path</label><input type="text" data-key="inp" value="portrait.jpg" placeholder="portrait.jpg" data-quote="auto"></div><div class="try-field"><label>Output path</label><input type="text" data-key="out" value="passport.jpg" placeholder="passport.jpg" data-quote="auto"></div><div class="try-field"><label>Width (px)</label><input type="number" data-key="w" value="400"></div><div class="try-field"><label>Height (px)</label><input type="number" data-key="h" value="500"></div><div class="try-field"><label>force (bypass face check)</label><select data-key="force"><option value="False" selected>False</option><option value="True" >True</option></select></div><div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2" >2</option><option value="4" >4</option><option value="8" >8</option><option value=""auto"" >"auto"</option></select></div></div>
+        <div class="try-output-wrap">
+          <div class="code-wrap">
+            <pre><code class="try-output language-python"></code></pre>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- sub_check -->
+<div class="fn-card" id="fn-sub_check"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.sub_check()</div><div class="fn-sig">sub_check(input_path, output_path=None, force=False, log_file=None, stats=False, workers=False)</div><div class="fn-desc">Classify images as: face detected (success) or no face found (not_processed).</div><div class="fn-badges"><span class="badge badge-bytes">bytes input</span><span class="badge badge-cloud">cloud</span><span class="badge badge-face">SeetaFace</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+has_face = ip.sub_check("portrait.jpg")   # True or False
+with open("portrait.jpg","rb") as f: raw=f.read()
+print(ip.sub_check(raw))
+ip.sub_check("photos/", "sorted/", stats=True, log_file="check.xlsx")
+ip.sub_check("photos/", "sorted/", workers=4, stats=True)
+ip.sub_check("gs://bucket/photos/", "sorted/", workers="auto")</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>bool</code> (single file) | <code>dict[str,str]</code> (folder)</div></div></div>
+
+<!-- CLOUD -->
+<section class="section" id="fn-download">
+  <h2 class="section-title"><span class="icon" style="background:#1f3d6e">☁️</span> Cloud Functions</h2>
+</section>
+
+<div class="fn-card"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.download()</div><div class="fn-sig">download(url, output_path, prefix='', log_file=None, progress=True, workers=False)</div><div class="fn-desc">Download from HTTP/HTTPS, GCS, S3, or Azure to local disk.</div><div class="fn-badges"><span class="badge badge-cloud">cloud</span><span class="badge badge-worker">workers</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.download("https://example.com/photo.jpg", "local.jpg")
+ip.download("gs://my-bucket/photos/portrait.jpg", "portrait.jpg")
+ip.download("s3://my-bucket/image.jpg", "image.jpg")
+# Bulk download with progress bar
+urls = ["https://example.com/a.jpg", "https://example.com/b.jpg"]
+ip.download(urls, "local_dir/", workers=4, progress=True)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-resolve_folder"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.resolve_folder()</div><div class="fn-sig">resolve_folder(cloud_url)</div><div class="fn-desc">List all images in a cloud folder and return cached local paths.</div><div class="fn-badges"><span class="badge badge-cloud">cloud</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+paths = ip.resolve_folder("gs://my-bucket/photos/")
+print(f"Found {len(paths)} images")
+for path in paths:
+    ip.gray(path, path.replace("/cache/", "/output/"))</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>list[str]</code> — absolute local file paths</div></div></div>
+
+<div class="fn-card" id="fn-auth_status"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.auth_status()</div><div class="fn-sig">auth_status()</div><div class="fn-desc">Print a table of active cloud auth methods and return the status string.</div><div class="fn-badges"><span class="badge badge-cloud">cloud</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.auth_status()
+# Prints:
+# ┌──────────────────────────────┬────────────────┐
+# │ Method                       │ Status         │
+# ├──────────────────────────────┼────────────────┤
+# │ GCP Application Default      │ ✅ Active       │
+# │ AWS_ACCESS_KEY_ID            │ ❌ Not set      │
+# └──────────────────────────────┴────────────────┘
+# Set up GCP:  gcloud auth application-default login</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<div class="fn-card" id="fn-refresh_gcp_token"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.refresh_gcp_token()</div><div class="fn-sig">refresh_gcp_token()</div><div class="fn-desc">Force-refresh the GCP token (auto-refreshed every 55 min, but call this on 401 errors).</div><div class="fn-badges"><span class="badge badge-cloud">cloud</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.refresh_gcp_token()
+# Terminal setup: gcloud auth application-default login</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div></div>
+
+<!-- BATCH ENGINE -->
+<section class="section" id="fn-batch_resize">
+  <h2 class="section-title"><span class="icon" style="background:#1f3d2b">⚙️</span> Batch Engine</h2>
+  <p class="section-desc">Rust Rayon engine — true multi-core, GIL released for entire batch. Fastest way to process a folder.</p>
+</section>
+
+<div class="fn-card"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.batch_resize()</div><div class="fn-sig">batch_resize(folder, output_folder, width, height, keep_ratio=False)</div><div class="fn-desc">Resize all images in a folder using Rust Rayon (no Python workers= needed).</div><div class="fn-badges"><span class="badge badge-rust">Rayon engine</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+success, total = ip.batch_resize("photos/", "out/", 800, 600)
+print(f"{success}/{total} images resized")
+ip.batch_resize("photos/", "out/", 800, 600, keep_ratio=True)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>tuple[int, int]</code> — (success_count, total_count)</div></div></div>
+
+<div class="fn-card" id="fn-batch_process"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.batch_process()</div><div class="fn-sig">batch_process(folder, output_folder, do_what, **options)</div><div class="fn-desc">Apply any named operation to a folder using the Rust Rayon engine.</div><div class="fn-badges"><span class="badge badge-rust">Rayon engine</span></div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+ip.batch_process("in/", "out/", "gray")
+ip.batch_process("in/", "out/", "resize",     width=1280, height=720)
+ip.batch_process("in/", "out/", "blur",       amount=5)
+ip.batch_process("in/", "out/", "sharpen")
+ip.batch_process("in/", "out/", "brightness", value=30)
+ip.batch_process("in/", "out/", "sign_fix",   width=500, height=200)
+ip.batch_process("in/", "out/", "sub_fix",    width=400, height=500)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>tuple[int, int]</code> — (success_count, total_count)</div></div></div>
+
+<!-- process -->
+<div class="fn-card" id="fn-process">
+  <div class="fn-header" onclick="toggleCard(this)">
+    <div>
+      <div class="fn-name">ip.process() &nbsp;/&nbsp; ip.run()</div>
+      <div class="fn-sig">process(config: dict) → dict | list[dict]</div>
+      <div class="fn-desc">Advanced pipeline engine — chain multiple operations in one pass over a file or folder. <code>run()</code> is an identical alias.</div>
+      <div class="fn-badges"><span class="badge badge-bytes">file/folder/cloud</span><span class="badge badge-worker">workers</span><span class="badge badge-rust">Rayon</span></div>
+    </div><span class="fn-toggle">▼</span>
+  </div>
+  <div class="fn-body">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+# ── Single file: fix orientation then grayscale ───────────────────
+result = ip.process({
+    "input":  "photo.jpg",
+    "output": "out/",
+    "ops":    ["fix_turn", "gray"],
+})
+
+# ── Folder pipeline: orient + blur ────────────────────────────────
+ip.process({
+    "input":   "photos/",
+    "output":  "results/",
+    "ops":     ["fix_turn", "blur"],
+    "workers": 4,
+    "stats":   True,
+})
+
+# ── Full production pipeline ──────────────────────────────────────
+ip.process({
+    "input":    "scans/",
+    "output":   "clean/",
+    "ops":      ["fix_turn", "sign_fix", "gray"],
+    "workers":  "auto",
+    "width":    500, "height": 200,
+    "stats":    True,
+    "log_file": "audit.xlsx",
+})
+
+# ── Ops with inline parameters ─────────────────────────────────────
+ip.process({
+    "input":  "photos/",
+    "output": "out/",
+    "ops": [
+        "fix_turn",
+        {"blur":       [7]},       # blur amount=7
+        {"brightness": [20]},      # +20 brightness
+        {"rotate":     [90]},
+        {"compress":   ["webp", 80]},
+    ],
+    "workers": 2,
+})
+
+# ── Cloud input ────────────────────────────────────────────────────
+ip.process({
+    "input":    "gs://my-bucket/photos/",
+    "output":   "local_out/",
+    "ops":      ["fix_turn", "gray"],
+    "workers":  4,
+    "stats":    True,
+    "log_file": "cloud_audit.xlsx",
+})
+
+# ── Supported ops ─────────────────────────────────────────────────
+# "fix_turn", "gray", "resize", "scale", "crop", "crop_center",
+# "auto_crop", "rotate", "flip", "blur", "sharpen", "enhance",
+# "deblur", "edges", "edge_art", "portrait", "brightness",
+# "saturation", "tint", "color_grade", "compress", "draw_rect",
+# "add_text", "sign_fix", "sub_fix", "enhance_signature"
+
+# run() is identical:
+ip.run({"input": "photos/", "output": "out/", "ops": ["gray"]})</code></pre>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <div class="returns-line">Returns: <code>dict</code> (single file) | <code>list[dict]</code> (folder)</div>
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer;font-size:.82rem;color:var(--accent);user-select:none;list-style:none;display:flex;align-items:center;gap:6px"><span>&#x26A1;</span> <strong>Try it — build your process() call</strong></summary>
+      <div id="try-process" class="try-widget" style="margin-top:12px" data-template="ip.process(&#x7B;&#xa;    &#x22;input&#x22;:    {inp},&#xa;    &#x22;output&#x22;:   {out},&#xa;    &#x22;ops&#x22;:      [{ops}],&#xa;    &#x22;workers&#x22;:  {workers},&#xa;    &#x22;stats&#x22;:    {stats},&#xa;&#x7D;)">
+        <p class="try-hint">&#x270F; Edit parameters &#x2014; code updates live</p>
+        <div class="try-form">
+          <div class="try-field"><label>Input path</label><input type="text" data-key="inp" data-quote="auto" value="photos/"></div>
+          <div class="try-field"><label>Output path</label><input type="text" data-key="out" data-quote="auto" value="out/"></div>
+          <div class="try-field"><label>Operations (comma-separated strings)</label><input type="text" data-key="ops" value='"fix_turn", "gray"'></div>
+          <div class="try-field"><label>Workers</label><select data-key="workers"><option value="False" selected>False</option><option value="2">2</option><option value="4">4</option><option value="8">8</option><option value='"auto"'>"auto"</option></select></div>
+          <div class="try-field"><label>stats (print summary)</label><select data-key="stats"><option value="False" selected>False</option><option value="True">True</option></select></div>
+        </div>
+        <div class="try-output-wrap"><div class="code-wrap"><pre><code class="try-output language-python"></code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div></div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- HEALTH -->
+<section class="section" id="fn-works">
+  <h2 class="section-title"><span class="icon" style="background:#238636">❤️</span> Health &amp; Utilities</h2>
+</section>
+
+<div class="fn-card"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.works()</div><div class="fn-sig">works()</div><div class="fn-desc">Quick health-check — verify the Rust core is loaded and functional.</div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+print(ip.works())           # "photo_ops Rust core OK"
+assert ip.works()           # guard before batch jobs
+# From terminal:
+# python -c "import photo_ops as ip; print(ip.works())"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>str</code></div></div></div>
+
+<div class="fn-card" id="fn-calls"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.calls()</div><div class="fn-sig">calls()</div><div class="fn-desc">Print and return the list of all available public functions.</div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+all_fns = ip.calls()      # prints list and returns it
+for fn in ip.calls():
+    print(fn)</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="returns-line">Returns: <code>list[str]</code></div></div></div>
+
+<div class="fn-card" id="fn-install_models"><div class="fn-header" onclick="toggleCard(this)"><div><div class="fn-name">ip.install_models()</div><div class="fn-sig">install_models(dest_dir=None, url=..., expected_sha256='', force=False)</div><div class="fn-desc">Download and cache yolov8n-face.onnx for optional YOLO-based face detection.</div></div><span class="fn-toggle">▼</span></div><div class="fn-body"><div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+path = ip.install_models()                           # default cache dir
+path = ip.install_models(dest_dir="/models/")
+path = ip.install_models(force=True)                 # force re-download
+path = ip.install_models(url="file:///mnt/share/yolov8n-face.onnx")  # offline</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><div class="alert alert-green">✅ SeetaFace (used by has_faces, sub_fix, portrait) is embedded in the wheel — <code>install_models()</code> is only needed for the optional YOLO detector.</div></div></div>
+
+
+<!-- EXCEL / CSV AUDIT LOG -->
+<section class="section" id="fn-log_file">
+  <h2 class="section-title"><span class="icon" style="background:#1f3d2b">📊</span> Audit Logs — Excel &amp; CSV</h2>
+  <p class="section-desc">Every folder-processing function accepts a <code>log_file=</code> parameter.
+  Pass a <code>.xlsx</code> or <code>.csv</code> path — the file is auto-created (or appended) with one row per processed image.</p>
+
+  <div class="alert alert-info">ℹ <strong>log_file works with all folder functions:</strong> gray, resize, blur, sharpen, sign_fix, sub_fix, sign_check, sub_check, batch_process, process() — any function that accepts <code>workers=</code> also accepts <code>log_file=</code>.</div>
+
+  <div class="fn-tabs" style="margin-top:20px">
+    <button class="fn-tab active" onclick="switchTab(this,'log-excel')">Excel (.xlsx)</button>
+    <button class="fn-tab" onclick="switchTab(this,'log-csv')">CSV (.csv)</button>
+    <button class="fn-tab" onclick="switchTab(this,'log-read')">Read the log (pandas)</button>
+    <button class="fn-tab" onclick="switchTab(this,'log-columns')">Columns reference</button>
+  </div>
+
+  <div id="log-excel" class="fn-tab-pane active">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+# ── Basic: create an Excel audit log ──────────────────────────────
+ip.gray("photos/", "out/", log_file="audit.xlsx")
+
+# ── All folder functions accept log_file ──────────────────────────
+ip.resize("photos/", "out/", 800, 600, log_file="resize_log.xlsx")
+ip.blur("photos/",   "out/", amount=5,  log_file="blur_log.xlsx")
+ip.sign_fix("sigs/", "out/",            log_file="sign_audit.xlsx")
+ip.sub_fix("portraits/", "out/",        log_file="face_audit.xlsx")
+ip.sign_check("mixed/", "sorted/",      log_file="check_log.xlsx")
+
+# ── With workers + stats printed to terminal ───────────────────────
+ip.sub_fix(
+    "portraits/", "out/",
+    width=400, height=500,
+    workers="auto",
+    log_file="audit.xlsx",   # &lt;-- .xlsx extension → Excel format
+    stats=True,              # prints summary table to terminal too
+)
+
+# ── Pipeline engine ───────────────────────────────────────────────
+ip.process({
+    "input":    "scans/",
+    "output":   "clean/",
+    "ops":      ["fix_turn", "sub_fix"],
+    "workers":  4,
+    "log_file": "pipeline_audit.xlsx",  # Excel
+    "stats":    True,
+})
+
+# ── Auto-created: no need to create the file first ────────────────
+# If audit.xlsx doesn't exist → created fresh
+# If audit.xlsx exists        → rows are APPENDED (not overwritten)
+# → Run the same job twice: all rows are recorded cumulatively
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <div id="log-csv" class="fn-tab-pane">
+    <div class="code-wrap"><pre><code class="language-python">import photo_ops as ip
+
+# ── Use .csv extension → CSV format ───────────────────────────────
+ip.gray("photos/", "out/", log_file="audit.csv")
+ip.sign_fix("sigs/", "out/", log_file="sign_audit.csv", workers=4)
+ip.sub_fix("portraits/", "out/",
+           width=400, height=500,
+           log_file="audit.csv",   # &lt;-- .csv extension → CSV format
+           workers="auto")
+
+# ── CSV vs Excel ──────────────────────────────────────────────────
+# .xlsx  → Excel workbook (preferred for Excel users)
+# .csv   → Comma-separated (universal, open in any editor/tool)
+
+# ── Cloud jobs → save log locally ─────────────────────────────────
+ip.gray("gs://bucket/photos/", "out/",
+        log_file="cloud_audit.csv",
+        workers=4)
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <div id="log-read" class="fn-tab-pane">
+    <div class="code-wrap"><pre><code class="language-python">import pandas as pd
+
+# ── Read Excel log ─────────────────────────────────────────────────
+df = pd.read_excel("audit.xlsx")
+print(df.head())
+
+# ── Filter: see only failures ──────────────────────────────────────
+failed = df[df["status"] == "failed"]
+print(f"{len(failed)} failures:")
+print(failed[["filename", "error"]])
+
+# ── Filter: not_processed (low-confidence, not a crash) ───────────
+np = df[df["status"] == "not_processed"]
+print(f"{len(np)} not processed (review manually):")
+print(np["filename"].tolist())
+
+# ── Filter: successes ──────────────────────────────────────────────
+ok = df[df["status"] == "success"]
+print(f"{len(ok)}/{len(df)} processed successfully")
+
+# ── Summary ────────────────────────────────────────────────────────
+print(df["status"].value_counts())
+
+# ── Read CSV log ───────────────────────────────────────────────────
+df_csv = pd.read_csv("audit.csv")
+print(df_csv.info())
+print(df_csv.groupby("status").size())
+
+# ── No pandas? Use Python stdlib (CSV only) ────────────────────────
+import csv
+with open("audit.csv") as f:
+    rows = list(csv.DictReader(f))
+failed = [r for r in rows if r["status"] != "success"]
+print(f"{len(failed)} non-success rows")
+</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <div id="log-columns" class="fn-tab-pane">
+    <table class="params-table">
+      <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+      <tr><td>filename</td><td>str</td><td>Original input filename (basename).</td></tr>
+      <tr><td>input_path</td><td>str</td><td>Full absolute path to the input file.</td></tr>
+      <tr><td>output_path</td><td>str</td><td>Full absolute path to the output file (or cloud URL).</td></tr>
+      <tr><td>status</td><td>str</td><td><code>success</code> / <code>not_processed</code> / <code>failed</code></td></tr>
+      <tr><td>error</td><td>str</td><td>Error message if status is <code>failed</code>. Empty otherwise.</td></tr>
+      <tr><td>input_size_kb</td><td>float</td><td>Input file size in kilobytes.</td></tr>
+      <tr><td>output_size_kb</td><td>float</td><td>Output file size in kilobytes (0 if failed).</td></tr>
+      <tr><td>duration_ms</td><td>float</td><td>Time taken to process this file in milliseconds.</td></tr>
+      <tr><td>timestamp</td><td>str</td><td>ISO-8601 timestamp when this row was written.</td></tr>
+      <tr><td>worker_id</td><td>int</td><td>Thread/worker that processed this file (for debugging).</td></tr>
+      <tr><td>operation</td><td>str</td><td>Function name that generated this row (e.g. <code>sub_fix</code>).</td></tr>
+    </table>
+    <div class="alert alert-green" style="margin-top:12px">✅ The <code>not_processed</code> status means the image was <strong>intentionally skipped</strong> (e.g. no face found, too small) — it is NOT an error and does NOT appear in <code>failed</code>. Review those files manually and re-process with <code>force=True</code> if needed.</div>
+  </div>
+</section>
+
+
+<!-- CHANGELOG -->
+<section class="section" id="fn-changelog">
+  <h2 class="section-title"><span class="icon" style="background:#3d2b1f">📋</span> Changelog</h2>
+  <p class="section-desc">Full history of every release. Latest first.</p>
+
+  <!-- v0.1.0 -->
+  <div class="fn-card" style="border-color:#3fb95044">
+    <div class="fn-header" onclick="toggleCard(this)" style="background:var(--bg-1)">
+      <div>
+        <div class="fn-name" style="color:var(--green)">v0.1.0 — 2026-08-03 &nbsp; 🎉 First Public Release</div>
+        <div class="fn-desc">GitHub Pages docs · CI/CD pipelines · cloud I/O · bytes I/O · large-bg sub_fix fix · tilt ±25°</div>
+        <div class="fn-badges">
+          <span class="badge badge-face">New</span>
+          <span class="badge badge-bytes">14 additions</span>
+          <span class="badge badge-cloud">5 changed</span>
+          <span class="badge" style="background:#3d1f1f;color:#f85149;border:1px solid #f8514933">3 fixed</span>
+        </div>
+      </div>
+      <span class="fn-toggle">▼</span>
+    </div>
+    <div class="fn-body">
+      <div style="columns:2;column-gap:24px;margin-top:8px">
+        <div style="break-inside:avoid;margin-bottom:16px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--green);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px">🆕 Added</div>
+          <ul style="font-size:.83rem;color:var(--text-2);line-height:1.7;padding-left:18px">
+            <li>GitHub Pages documentation site</li>
+            <li>CI/CD: CI.yml · release.yml · docs.yml</li>
+            <li><code>output_path=None</code> → bytes on all ops</li>
+            <li>Raw <code>bytes</code> accepted as input</li>
+            <li>Cloud I/O: <code>gs://</code> <code>s3://</code> <code>az://</code> on all folder ops</li>
+            <li><code>sub_fix</code> large-background retry (inner-60% pre-crop)</li>
+            <li><code>sub_fix</code> tilt sweep ±25° (was ±15°)</li>
+            <li>Gamma boost γ=0.5 face detection strategy</li>
+            <li>Horizontal flip face detection strategy</li>
+            <li><code>add_text()</code> with watermark / opacity</li>
+            <li><code>color_grade()</code> with named presets</li>
+            <li><code>draw_rect()</code> with hex/named colour</li>
+            <li><code>morphology()</code> dilate / erode</li>
+            <li><code>extract_frames_ex()</code> key-frame dedup</li>
+            <li><code>process()</code> / <code>run()</code> pipeline engine</li>
+            <li><code>auth_status()</code> cloud auth table</li>
+            <li><code>refresh_gcp_token()</code></li>
+            <li><code>PHOTO_OPS_VERBOSE=1</code> env var</li>
+            <li>Python 3.8 – 3.13 all CPython wheels</li>
+          </ul>
+        </div>
+        <div style="break-inside:avoid">
+          <div style="font-size:.78rem;font-weight:700;color:var(--orange);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px">🔄 Changed</div>
+          <ul style="font-size:.83rem;color:var(--text-2);line-height:1.7;padding-left:18px">
+            <li><code>homepage()</code> URL → GitHub Pages</li>
+            <li>Temp file naming: UUID-based (no race conditions)</li>
+            <li><code>sub_fix</code> strict: raises <code>NotProcessedError</code> correctly</li>
+            <li>Signature thresholds relaxed (catches thin sigs)</li>
+            <li>Binary size −30–40% (strip + panic=abort)</li>
+          </ul>
+          <div style="font-size:.78rem;font-weight:700;color:var(--red);letter-spacing:.05em;text-transform:uppercase;margin:12px 0 8px">🐛 Fixed</div>
+          <ul style="font-size:.83rem;color:var(--text-2);line-height:1.7;padding-left:18px">
+            <li>Rust E0596 compile error in <code>detect_tilt_angle</code></li>
+            <li>Excel sheet name <code>/</code> crash in audit log</li>
+            <li>Stale pre-release description in pyproject.toml</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v0.0.5 -->
+  <div class="fn-card">
+    <div class="fn-header" onclick="toggleCard(this)">
+      <div>
+        <div class="fn-name">v0.0.5 — 2026-07-20</div>
+        <div class="fn-desc">Signature heuristic engine · multi-strategy face detection · tilt correction · WorkerSpec</div>
+      </div><span class="fn-toggle">▼</span>
+    </div>
+    <div class="fn-body">
+      <ul style="font-size:.83rem;color:var(--text-2);line-height:1.8;padding-left:18px;margin-top:8px">
+        <li>Two-Window signature acceptance model in Rust (Otsu-density aligned)</li>
+        <li>Multi-strategy face detection: 4-rotation sweep + contrast percentile stretching</li>
+        <li>Dynamic minimum face size (20 px for small images, 30 px standard)</li>
+        <li>Tilt correction with 15% improvement threshold (prevents jitter on upright images)</li>
+        <li>Universal <code>WorkerSpec</code> resolver — 9 supported input formats</li>
+        <li><code>NotProcessedError</code> routing to <code>not_processed/</code></li>
+        <li><strong>Fixed:</strong> double-inversion bug in <code>_sign_classify</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v0.0.4 -->
+  <div class="fn-card">
+    <div class="fn-header" onclick="toggleCard(this)">
+      <div>
+        <div class="fn-name">v0.0.4 — 2026-07-15</div>
+        <div class="fn-desc">Batch engine · adaptive workers · audit log export</div>
+      </div><span class="fn-toggle">▼</span>
+    </div>
+    <div class="fn-body">
+      <ul style="font-size:.83rem;color:var(--text-2);line-height:1.8;padding-left:18px;margin-top:8px">
+        <li><code>batch.py</code> with <code>process()</code> and <code>run()</code> entry points</li>
+        <li><code>AdaptiveWorkerController</code> using <code>psutil</code> for dynamic thread scaling</li>
+        <li>Audit log export to <code>.xlsx</code> and <code>.csv</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- v0.0.1-0.0.3 -->
+  <div class="fn-card">
+    <div class="fn-header" onclick="toggleCard(this)">
+      <div>
+        <div class="fn-name">v0.0.1 – v0.0.3 — Internal development</div>
+        <div class="fn-desc">Initial Rust core, PyO3 bindings, core functions</div>
+      </div><span class="fn-toggle">▼</span>
+    </div>
+    <div class="fn-body">
+      <ul style="font-size:.83rem;color:var(--text-2);line-height:1.8;padding-left:18px;margin-top:8px">
+        <li>Initial Rust core with PyO3 bindings</li>
+        <li><code>py_to_gray</code>, <code>py_resize</code>, <code>py_rotate</code>, <code>py_fix_orientation</code></li>
+        <li><code>py_enhance_signature</code>, <code>py_is_signature</code>, <code>py_has_faces</code></li>
+        <li><code>py_smart_crop</code>, <code>py_smart_crop_v2</code>, <code>py_detect_tilt_angle</code></li>
+        <li><code>batch_resize</code> and <code>batch_process</code> Rayon-parallel batch operations</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <span>photo_ops v0.1.0 — Rust-powered image processing for Python &nbsp;·&nbsp; <a href="https://crazy-writer.github.io/photo_ops/" style="color:var(--accent)">crazy-writer.github.io/photo_ops</a></span>
+  <span>
+    <a href="https://pypi.org/project/photo_ops/" target="_blank">PyPI</a> ·
+    <a href="https://github.com/crazy-writer/photo_ops" target="_blank">GitHub</a> ·
+    <a href="https://forms.gle/CBhJVP3XdbZh1B2J7" target="_blank">Feedback</a>
+  </span>
+</footer>
+
+</main>
+</div><!-- #layout -->
+
+<script>
+// ── highlight.js ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  hljs.highlightAll();
+});
+
+// ── Sidebar toggle (mobile) ───────────────────────────────────────
+const sidebar  = document.getElementById('sidebar');
+const overlay  = document.getElementById('sidebar-overlay');
+const hamburger= document.getElementById('hamburger');
+
+hamburger.addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+});
+overlay.addEventListener('click', () => {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+});
+
+// ── scrollTo helper ───────────────────────────────────────────────
+function navTo(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Auto-open card if clicking fn link
+  if (id.startsWith('fn-') && !el.classList.contains('section')) {
+    el.classList.add('open');
+  }
+  // Close mobile sidebar
+  sidebar.classList.remove('open');
+  overlay.classList.remove('open');
+}
+
+// ── Toggle fn card ────────────────────────────────────────────────
+function toggleCard(header) {
+  header.parentElement.classList.toggle('open');
+}
+
+// ── Tab switcher ──────────────────────────────────────────────────
+function switchTab(tabEl, paneId) {
+  const tabGroup = tabEl.parentElement;
+  // Walk up until we find a container that actually owns .fn-tab-pane elements
+  // This handles both .fn-body cards AND section-level tab groups
+  let card = tabGroup.closest('.fn-body');
+  if (!card || !card.querySelector('.fn-tab-pane')) {
+    card = tabGroup.parentElement;
+    while (card && !card.querySelector('.fn-tab-pane') && card !== document.body) {
+      card = card.parentElement;
+    }
+  }
+  tabGroup.querySelectorAll('.fn-tab').forEach(t => t.classList.remove('active'));
+  if (card) card.querySelectorAll('.fn-tab-pane').forEach(p => p.classList.remove('active'));
+  tabEl.classList.add('active');
+  const pane = document.getElementById(paneId);
+  if (pane) pane.classList.add('active');
+}
+
+// ── Copy buttons ──────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.previousElementSibling || btn.closest('.code-wrap').querySelector('pre');
+  const text = pre ? pre.innerText : '';
+  copyText(text, btn);
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+  });
+}
+
+// ── Active sidebar link tracking ──────────────────────────────────
+const sbLinks = document.querySelectorAll('.sb-link');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      sbLinks.forEach(l => l.classList.remove('active'));
+      // Find matching link
+      sbLinks.forEach(l => {
+        if (l.getAttribute('onclick') && l.getAttribute('onclick').includes("'" + id + "'")) {
+          l.classList.add('active');
+        }
+      });
+    }
+  });
+}, { rootMargin: '-60px 0px -70% 0px', threshold: 0 });
+
+document.querySelectorAll('[id]').forEach(el => {
+  if (el.id.startsWith('fn-') || el.id === 'hero' || el.id === 'quickstart' ||
+      el.id === 'keywords' || el.id === 'workers-spec' || el.id === 'bytes-io' ||
+      el.id === 'cloud-auth') {
+    observer.observe(el);
+  }
+});
+
+// ── Search ────────────────────────────────────────────────────────
+const FN_INDEX = [
+  {name:'gray',         desc:'Convert to grayscale',                         id:'fn-gray'},
+  {name:'resize',       desc:'Resize to exact dimensions',                    id:'fn-resize'},
+  {name:'info',         desc:'Get width, height, channels, checksum',         id:'fn-info'},
+  {name:'rotate',       desc:'Rotate 90, 180, 270 degrees (lossless)',        id:'fn-rotate'},
+  {name:'crop',         desc:'Crop exact rectangle by (x, y, w, h)',          id:'fn-crop'},
+  {name:'crop_center',  desc:'Crop centred region',                           id:'fn-crop_center'},
+  {name:'auto_crop',    desc:'Alias for crop_center()',                       id:'fn-crop_center'},
+  {name:'flip',         desc:'Mirror or flip upside-down',                    id:'fn-flip'},
+  {name:'scale',        desc:'Scale by float factor (0.5 = half)',            id:'fn-scale'},
+  {name:'brightness',   desc:'Adjust brightness offset',                      id:'fn-brightness'},
+  {name:'saturation',   desc:'Multiply colour saturation',                    id:'fn-saturation'},
+  {name:'tint',         desc:'Shift RGB channels independently',              id:'fn-tint'},
+  {name:'color_grade',  desc:'Apply colour grade preset (cinematic, warm…)',  id:'fn-color_grade'},
+  {name:'draw_rect',    desc:'Draw a coloured rectangle outline',             id:'fn-draw_rect'},
+  {name:'add_text',     desc:'Overlay text with font, colour, opacity',       id:'fn-add_text'},
+  {name:'morphology',   desc:'Dilate or erode binary mask',                   id:'fn-morphology'},
+  {name:'blur',         desc:'Gaussian blur',                                 id:'fn-blur'},
+  {name:'sharpen',      desc:'Unsharp-mask sharpening',                       id:'fn-sharpen'},
+  {name:'edges',        desc:'Canny edge detection',                          id:'fn-edges'},
+  {name:'edge_art',     desc:'Edges on blurred background (artistic)',        id:'fn-edge_art'},
+  {name:'portrait',     desc:'Face sharp, background blurred (no GPU)',       id:'fn-portrait'},
+  {name:'enhance',      desc:'CLAHE-style local contrast enhancement',        id:'fn-enhance'},
+  {name:'deblur',       desc:'Remove motion blur (Wiener-style)',             id:'fn-deblur'},
+  {name:'compress',     desc:'Re-encode at quality (webp, jpg, png)',         id:'fn-compress'},
+  {name:'extract_frames',   desc:'Extract GIF frames to PNGs',               id:'fn-extract_frames'},
+  {name:'extract_frames_ex',desc:'Key-frame extraction with dedup',          id:'fn-extract_frames_ex'},
+  {name:'enhance_signature',desc:'Pre-process signature (run before sign_fix)',id:'fn-enhance_signature'},
+  {name:'has_faces',    desc:'True if face detected (SeetaFace)',             id:'fn-has_faces'},
+  {name:'sign_fix',     desc:'Orient + classify + crop signature',            id:'fn-sign_fix'},
+  {name:'sign_check',   desc:'Classify: signature / portrait / not_processed',id:'fn-sign_check'},
+  {name:'sub_fix',      desc:'Orient + de-tilt + passport crop portrait',     id:'fn-sub_fix'},
+  {name:'sub_check',    desc:'Classify: face found / not_processed',         id:'fn-sub_check'},
+  {name:'download',     desc:'Download from HTTP / GCS / S3 / Azure',        id:'fn-download'},
+  {name:'resolve_folder',desc:'List cloud folder → local cached paths',      id:'fn-resolve_folder'},
+  {name:'auth_status',  desc:'Show active cloud auth methods',                id:'fn-auth_status'},
+  {name:'refresh_gcp_token',desc:'Force refresh GCP access token',           id:'fn-refresh_gcp_token'},
+  {name:'batch_resize', desc:'Resize folder with Rust Rayon (fastest)',       id:'fn-batch_resize'},
+  {name:'batch_process',desc:'Apply any op to folder with Rust Rayon',       id:'fn-batch_process'},
+  {name:'process',      desc:'Chain multiple ops — pipeline engine',          id:'fn-process'},
+  {name:'run',          desc:'Alias for process()',                           id:'fn-process'},
+  {name:'works',        desc:'Health check — verify Rust core is loaded',    id:'fn-works'},
+  {name:'calls',        desc:'List all available functions',                  id:'fn-calls'},
+  {name:'install_models',desc:'Download yolov8n-face.onnx (optional)',       id:'fn-install_models'},
+  {name:'WorkerSpec',   desc:'Parameter that controls parallelism',           id:'workers-spec'},
+  {name:'bytes I/O',    desc:'Input as bytes / return bytes instead of file', id:'bytes-io'},
+  {name:'cloud',        desc:'gs:// s3:// az:// cloud paths',                id:'cloud-auth'},
+  {name:'auth',         desc:'Cloud authentication setup',                    id:'cloud-auth'},
+  {name:'BulkResult',   desc:'Dict returned for folder input',               id:'keywords'},
+  {name:'not_processed',desc:'Images that failed quality checks (not errors)',id:'keywords'},
+  {name:'log_file',    desc:'Excel/CSV audit log parameter — tracks every processed image',id:'fn-log_file'},
+  {name:'excel',       desc:'Excel .xlsx audit log with log_file parameter',              id:'fn-log_file'},
+  {name:'csv',         desc:'CSV .csv audit log with log_file parameter',                 id:'fn-log_file'},
+  {name:'audit',       desc:'Audit log: Excel or CSV file tracking batch results',        id:'fn-log_file'},
+  {name:'changelog',   desc:'Version history — what changed in each release',             id:'fn-changelog'},
+  {name:'v0.1.0',      desc:'First public release — all features listed',                 id:'fn-changelog'},
+];
+
+const searchInput   = document.getElementById('searchInput');
+const searchResults = document.getElementById('search-results');
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = FN_INDEX.filter(f =>
+    f.name.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q)
+  ).slice(0, 10);
+  if (!matches.length) {
+    searchResults.innerHTML = '<div class="search-no-results">No results for "' + q + '"</div>';
+  } else {
+    searchResults.innerHTML = matches.map(f =>
+      `<div class="search-result-item" onclick="searchGo('${f.id}')">
+        <div class="sri-name">ip.${f.name}()</div>
+        <div class="sri-desc">${f.desc}</div>
+      </div>`
+    ).join('');
+  }
+  searchResults.style.display = 'block';
+});
+
+function searchGo(id) {
+  searchResults.style.display = 'none';
+  searchInput.value = '';
+  navTo(id);
+  const el = document.getElementById(id);
+  if (el && el.classList.contains('fn-card')) el.classList.add('open');
+}
+
+document.addEventListener('click', (e) => {
+  if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+    searchResults.style.display = 'none';
+  }
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { searchResults.style.display = 'none'; searchInput.blur(); }
+});
+</script>
+
+</body>
+</html>

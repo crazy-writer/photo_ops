@@ -1,0 +1,117 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# photo_ops — .gitignore
+# Public repo safe: compiles, secrets, dev files, test artifacts all excluded.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Rust / Cargo build artifacts ──────────────────────────────────────────────
+/target/
+Cargo.lock
+
+# ── Maturin / compiled Python extensions ──────────────────────────────────────
+photo_ops/_rust*.so
+photo_ops/_rust*.pyd
+photo_ops/_rust*.pdb
+
+# ── Python bytecode ───────────────────────────────────────────────────────────
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# ── Distribution / wheel build directories ────────────────────────────────────
+dist/
+build/
+*.egg-info/
+wheels/
+*.whl
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env
+*.env
+
+# ── IDE / editor files ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+
+# ── OS generated files ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+~$*                   # Excel lock files (e.g. ~$photo_ops_examples.xlsx)
+
+# ── Private / development notes (not for publication) ─────────────────────────
+DEVNOTES.md
+dev_notes.md
+PRIVATE_*.md
+TODO_private.md
+scratch_*.md
+session_summary.md
+upload.md
+futurerelease.md
+README_old.md
+RELEASE.md
+
+# ── PyPI credentials ──────────────────────────────────────────────────────────
+.pypirc
+
+# ── All test / diagnostic / one-off scripts ───────────────────────────────────
+test.py
+test_*.py
+test_*/
+*_test_out/
+_sample_test_out/
+test_analysis_out/
+test_baseline_out/
+benchmark.py
+stress_test.py
+analyze_images.py
+pixel_probe.py
+probe_images.py
+sample_signs.py
+diag_*.py
+_patch_*.py
+patch_docstrings.py
+generate_examples.py
+sample_test.py
+
+# ── Old/deprecated setup files ────────────────────────────────────────────────
+setup.py
+colab_train.py
+Cropping_script/
+
+# ── Training / model files (large binaries) ───────────────────────────────────
+*.onnx
+*.bin
+*.pt
+*.pth
+*.h5
+seeta_fd_frontal_v1.0.bin
+
+# ── Jupyter notebooks ─────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Generated Excel / CSV files ───────────────────────────────────────────────
+*.xlsx
+*.csv
+
+# ── Cache directories ─────────────────────────────────────────────────────────
+.photo_ops_cache/
+
+# ── Scratch / temp images from dev sessions ───────────────────────────────────
+out_test_tight_crop.jpg
+oute.jpg
+images/subjects/_tmp_*.jpg
+images/subjects/_tmp_*.png
+
+# ── Temp output folders from manual runs ──────────────────────────────────────
+out/
+sign/
+*images
