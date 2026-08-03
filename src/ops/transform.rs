@@ -311,7 +311,6 @@ pub fn is_signature_img(img: &image::DynamicImage) -> bool {
             image::GrayImage::from_raw(thumb.width(), thumb.height(), raw_thumb.clone())
                 .unwrap_or(thumb)
         } else {
-            raw_thumb = pixels;
             thumb
         }
     };
@@ -832,8 +831,8 @@ pub fn smart_crop_v2(input: &str, output: &str, width: i32, height: i32, strict:
         .map_err(|e| format!("smart_crop_v2: failed to load input: {}", e))?;
     let (img_width, img_height) = img.dimensions();
 
-    let target_w = (width as u32).min(img_width);
-    let target_h = (height as u32).min(img_height);
+    let _target_w = (width as u32).min(img_width);
+    let _target_h = (height as u32).min(img_height);
 
     // ── Multi-strategy face detection (mirrors py_has_faces) ─────────────────
     let mut detector = match crate::utils::init_detector() {
@@ -854,7 +853,7 @@ pub fn smart_crop_v2(input: &str, output: &str, width: i32, height: i32, strict:
         let (rw, rh) = rotated.dimensions();
         let scaled   = maybe_downscale(&rotated, 480);
         let (sw, sh) = scaled.dimensions();
-        let scale_f  = sw as f64 / rw as f64;
+        let _scale_f  = sw as f64 / rw as f64;
 
         for (pix_ref, fw, fh) in [
             (scaled.clone().into_raw(), sw, sh),

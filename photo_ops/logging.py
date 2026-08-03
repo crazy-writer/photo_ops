@@ -1,16 +1,18 @@
+import atexit
 import csv
 import io
 import os
 import threading
 import uuid
 from datetime import datetime
+from typing import Union
 
 # Define PathLike locally to avoid circular imports
-PathLike = str | os.PathLike
+# Union syntax used for Python 3.8/3.9 compatibility (str | X requires 3.10+)
+PathLike = Union[str, os.PathLike]
 
 _log_lock = threading.Lock()
 
-import atexit
 
 # ── xlsxwriter workbook cache ─────────────────────────────────────────────────
 # Each log_file path maps to an open xlsxwriter Workbook + per-sheet writers.
